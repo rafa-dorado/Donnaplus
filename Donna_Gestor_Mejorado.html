@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Donna - Sistema Master v25.6</title>
+    <!-- Favicon Donna -->
+    <link rel="icon" type="image/png" href="https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=w100">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap');
+        
+        :root {
+            /* Paleta Base (Esmeraldas heredados) */
+            --verde-claro: #34d399;
+            --verde-medio: #10b981;
+            --verde-oscuro: #059669;
+            
+            /* Colores de Marca */
+            --cian: #00C4FF;
+            --azul: #4E54F5;
+            --violeta: #8A3FFC;
+            --rosa: #FF66B2;
+        }
+
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+            color: #1e293b;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            transition: background 0.5s ease;
+        }
+
+        h1, h2, h3, .label-ubuntu { font-family: 'Ubuntu', sans-serif; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        }
+
+        @keyframes taskIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .task-item { 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+            cursor: pointer; 
+            animation: taskIn 0.3s ease-out backwards; 
+            position: relative; 
+        }
+        .task-item:active { cursor: grabbing; }
+        .dragging { opacity: 0.5; transform: scale(0.98); }
+
+        .drop-target { 
+            border: 2px dashed var(--verde-medio) !important; 
+            background: rgba(16, 185, 129, 0.05) !important; 
+        }
+
+        .checkbox-eonesia {
+            appearance: none; 
+            width: 1.4rem; 
+            height: 1.4rem;
+            border: 2px solid #cbd5e1; 
+            border-radius: 8px;
+            cursor: pointer; 
+            position: relative; 
+            transition: all 0.3s ease; 
+            background: white; 
+            flex-shrink: 0;
+        }
+        .checkbox-eonesia:checked { 
+            background: linear-gradient(45deg, var(--verde-claro), var(--verde-oscuro)); 
+            border-color: transparent; 
+        }
+        .checkbox-eonesia:checked::after { 
+            content: '✓'; 
+            position: absolute; 
+            color: white; 
+            font-size: 0.9rem; 
+            font-weight: bold; 
+            left: 50%; 
+            top: 50%; 
+            transform: translate(-50%, -50%); 
+        }
+
+        .task-label { word-break: break-word; overflow-wrap: break-word; white-space: normal; line-height: 1.4; }
+
+        .star-rating { display: flex; align-items: center; gap: 4px; padding: 2px 8px; background: rgba(241, 245, 249, 0.6); border-radius: 10px; flex-shrink: 0; }
+        .star-icon { cursor: pointer; font-size: 14px; transition: all 0.2s; color: #cbd5e1; }
+        .star-icon.active { color: #f59e0b !important; }
+
+        .progress-gradient { background: linear-gradient(90deg, #6ee7b7, #34d399, #10b981, #059669); background-size: 200% 100%; animation: gradient-shift 3s linear infinite; }
+        @keyframes gradient-shift { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+
+        .btn-close-day { background: linear-gradient(45deg, var(--verde-oscuro), var(--verde-medio)) !important; color: white !important; transition: all 0.3s ease; }
+
+        #notification-box {
+            position: fixed; top: 100px; right: 20px; z-index: 4000;
+            width: 320px; transform: translateX(450px);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #notification-box.active { transform: translateX(0); }
+
+        #task-modal-overlay, #donna-modal-overlay, #confirm-modal-overlay, #rename-modal-overlay, #report-modal-overlay, #launchpad-modal-overlay, #about-modal-overlay, #prorroga-modal-overlay { 
+            background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(8px); 
+            display: none; position: fixed; inset: 0; z-index: 1500; 
+            align-items: center; justify-content: center; padding: 20px; 
+            transition: all 0.3s ease;
+        }
+
+        /* --- PANEL HILO MUSICAL DONNA VIBES --- */
+        #music-panel {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translate(-50%, -150%) scale(0.95);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #music-panel.active {
+            transform: translate(-50%, 0) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .action-icon { cursor: pointer; padding: 6px; border-radius: 10px; transition: all 0.2s ease; color: #94a3b8; flex-shrink: 0; }
+        .action-icon:hover { background: rgba(0,0,0,0.05); color: #1e293b; }
+        .action-icon.trash:hover { color: #ef4444; background: rgba(239, 68, 68, 0.05); }
+        .action-icon.pin-active { color: var(--verde-medio); transform: rotate(-45deg); opacity: 1; }
+
+        /* --- MURO TÁCTICO DE TIMEBOXING (DRAWER LATERAL DERECHO) --- */
+        #donna-timebox-panel {
+            position: fixed; right: -420px; top: 0; bottom: 0; width: 400px;
+            z-index: 1150; transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: -10px 0 40px rgba(0,0,0,0.08);
+            border-left: 1.5px solid rgba(255,255,255,0.5);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            display: flex; flex-direction: column;
+            overscroll-behavior: contain;
+        }
+        #donna-timebox-panel.active { right: 0; }
+
+        .tb-scroll-area {
+            flex: 1; overflow-y: auto; overflow-x: hidden; position: relative;
+            padding: 0 16px 40px 10px;
+            scroll-behavior: smooth;
+        }
+
+        .tb-canvas {
+            position: relative;
+            height: 960px; 
+            margin-top: 20px;
+            background-size: 100% 60px, 100% 30px;
+            background-image: 
+                linear-gradient(to bottom, #cbd5e1 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(203, 213, 225, 0.4) 1px, transparent 1px);
+            background-position: 0 0, 0 30px;
+            border-top: 1px solid #cbd5e1;
+        }
+
+        .tb-hour-label {
+            position: absolute; left: 0px; font-size: 9px; font-weight: 800;
+            color: #94a3b8; transform: translateY(-50%); font-family: monospace;
+            background: rgba(255,255,255,0.8); padding: 2px 4px; border-radius: 4px;
+        }
+
+        .tb-task {
+            position: absolute; left: 50px; right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(4px);
+            border: 1px solid #cbd5e1;
+            border-left: 4px solid var(--verde-claro);
+            border-radius: 8px; padding: 6px 10px;
+            box-shadow: 0 4px 10px -2px rgba(0,0,0,0.05);
+            cursor: grab; display: flex; flex-direction: column; overflow: hidden;
+            transition: box-shadow 0.2s, background-color 0.2s, border-color 0.2s;
+            z-index: 5;
+        }
+        .tb-task:active { cursor: grabbing; z-index: 100 !important; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); }
+        .tb-task:hover { background: #ffffff; border-color: #94a3b8; }
+        
+        .tb-task.tb-active {
+            background: #ecfdf5; border-color: var(--verde-medio);
+            border-left: 5px solid var(--verde-oscuro);
+            box-shadow: 0 0 15px rgba(16,185,129,0.2);
+            z-index: 10;
+        }
+
+        .tb-task.tb-compact { flex-direction: row; align-items: center; padding: 2px 8px; }
+        .tb-task.tb-compact .tb-content { flex: 1; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+        .tb-task.tb-compact .tb-title { margin-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; }
+        .tb-task.tb-compact .tb-time { font-size: 8px; }
+        .tb-task.tb-compact .tb-actions { flex-direction: row; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: linear-gradient(90deg, transparent, white 20%); padding-left: 10px; }
+        .tb-task.tb-compact.tb-active .tb-actions { background: linear-gradient(90deg, transparent, #ecfdf5 20%); }
+
+        .tb-title { font-size: 11px; font-weight: bold; color: #1e293b; margin-bottom: 4px; line-height: 1.2; }
+        .tb-time { font-size: 9px; color: #64748b; font-family: monospace; }
+        
+        .tb-actions { display: flex; gap: 4px; margin-top: auto; justify-content: flex-end; }
+        .tb-resizer {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 8px; cursor: ns-resize;
+            background: linear-gradient(to top, rgba(203,213,225,0.4), transparent);
+            border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; z-index: 20;
+        }
+        .tb-resizer:hover { background: linear-gradient(to top, rgba(16,185,129,0.3), transparent); }
+
+        .tb-current-time-line {
+            position: absolute; left: 45px; right: 0; height: 2px;
+            background: var(--verde-medio); z-index: 50; pointer-events: none;
+            box-shadow: 0 0 8px var(--verde-medio);
+            transition: top 1m linear;
+        }
+        .tb-current-time-line::before {
+            content: ''; position: absolute; left: -5px; top: -4px;
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--verde-oscuro); box-shadow: 0 0 10px var(--verde-oscuro);
+        }
+
+        .tb-ghost {
+            position: absolute; left: 50px; right: 10px;
+            background: rgba(16, 185, 129, 0.15); border: 2px dashed var(--verde-medio);
+            border-radius: 8px; pointer-events: none; z-index: 4; display: none;
+        }
+
+        .pulse-dot { display: inline-block; width: 6px; height: 6px; background-color: #ef4444; border-radius: 50%; margin-left: 6px; animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+
+        /* --- MODO FOCO (DEEP WORK) --- */
+        body.focus-active { background: #0f172a; }
+        body.focus-active header, body.focus-active footer, body.focus-active #task-container, body.focus-active #priority-hub, body.focus-active #new-section-box { display: none !important; }
+        body.focus-active #donna-postit { z-index: 2500 !important; }
+        body.focus-active #music-panel { z-index: 2500 !important; }
+        body.focus-active #launchpad-modal-overlay { z-index: 2600 !important; }
+
+        .focus-mode-only { display: none; }
+        body.focus-active .focus-mode-only { display: flex; }
+        body.focus-active .normal-modal-header { display: none; }
+        
+        body.focus-active #task-modal-overlay { background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(20px); }
+        body.focus-active #task-modal-overlay > div { max-width: 1000px; width: 100%; border: 2px solid rgba(16, 185, 129, 0.4); box-shadow: 0 0 100px rgba(16, 185, 129, 0.15); background: #ffffff; }
+
+        .donna-ai-widget {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 1.5rem;
+            padding: 1.5rem; display: flex; gap: 1rem; align-items: flex-start;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 25px rgba(0,0,0,0.2);
+            margin-top: 1.5rem; position: relative; overflow: hidden;
+        }
+        .donna-ai-widget::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(16,185,129,0.05) 0%, transparent 70%); pointer-events: none;
+        }
+        .donna-avatar-ai { width: 48px; height: 48px; border-radius: 12px; border: 2px solid var(--verde-medio); object-fit: cover; flex-shrink: 0; box-shadow: 0 0 15px rgba(16,185,129,0.4); }
+        .donna-ai-text { font-size: 13px; font-weight: 500; color: #f1f5f9; line-height: 1.5; font-style: italic; }
+        .donna-ai-label { font-size: 9px; font-weight: 900; color: var(--verde-claro); text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 4px; display: block; }
+
+        #prorroga-modal-overlay { z-index: 5000; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(15px); }
+
+        #radar-panel { position: absolute; top: 60px; right: 0; width: 320px; z-index: 500; display: none; max-height: 400px; overflow-y: auto; }
+        .icon-grid-picker { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 16px; background: white; border-radius: 2rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); position: absolute; bottom: 100%; left: 0; margin-bottom: 12px; z-index: 100; width: 280px; border: 1px solid #e2e8f0; max-height: 400px; overflow-y: auto; }
+        .icon-option { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; overflow: hidden; }
+        .icon-option:hover { background: #f1f5f9; transform: scale(1.1); }
+        .icon-option img { width: 100%; height: 100%; object-fit: cover; }
+        .icon-section-label { grid-column: span 5; font-size: 9px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; padding: 8px 0 4px 0; border-top: 1px solid #f1f5f9; margin-top: 4px; }
+        .date-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; text-transform: uppercase; display: inline-block; vertical-align: middle; }
+        .date-green { background: #dcfce7; color: #166534; }
+        .date-yellow { background: #fef3c7; color: #92400e; }
+        .date-red { background: #fee2e2; color: #991b1b; }
+        .sub-task-progress { font-size: 8px; font-weight: 900; background: white; color: #475569; padding: 1px 5px; border-radius: 5px; margin-left: 5px; border: 1px solid #e2e8f0; }
+
+        /* Animación Hilo Musical */
+        @keyframes music-beat { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(16, 185, 129, 0.4)); } 50% { transform: scale(1.15) rotate(4deg); filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.9)); } }
+        .music-active-icon { animation: music-beat 2.5s infinite ease-in-out; }
+        
+        .postit-note { background-color: #ecfdf5; background-image: repeating-linear-gradient(transparent, transparent 23px, rgba(16, 185, 129, 0.15) 24px); background-attachment: local; border-radius: 2px 2px 16px 2px; box-shadow: 2px 4px 10px rgba(0,0,0,0.1), 8px 12px 24px rgba(16, 185, 129, 0.2); border-left: 5px solid #34d399; }
+        .postit-header { background: transparent; cursor: grab; }
+        .postit-header:active { cursor: grabbing; }
+        .postit-toolbar { display: flex; gap: 4px; padding: 4px 12px; background: rgba(209, 250, 229, 0.6); border-bottom: 1px solid rgba(16, 185, 129, 0.2); }
+        .format-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; cursor: pointer; color: #059669; font-weight: bold; font-family: serif; font-size: 13px; transition: all 0.2s ease; border: none; background: transparent; outline: none; }
+        .format-btn:hover { background: rgba(16, 185, 129, 0.15); color: #064e3b; }
+        .postit-textarea { background: transparent; line-height: 24px; overflow-y: auto; word-break: break-word; }
+        .postit-textarea:empty:before { content: attr(placeholder); color: #10b981; opacity: 0.6; pointer-events: none; display: block; }
+        .postit-resizer { position: absolute; bottom: 0; right: 0; width: 24px; height: 24px; cursor: se-resize; background: linear-gradient(135deg, transparent 50%, rgba(16,185,129,0.3) 50%, rgba(16,185,129,0.3) 60%, transparent 60%, transparent 75%, rgba(16,185,129,0.5) 75%, rgba(16,185,129,0.5) 85%, transparent 85%); border-bottom-right-radius: 16px; z-index: 10; }
+
+        @media print {
+            header, footer, #new-section-box, #donna-postit, #music-panel, .fixed { display: none !important; }
+            #report-modal-overlay { display: block !important; position: absolute; top:0; left:0; width: 100%; background: white; padding: 0; z-index: 9999; }
+            #report-header-img { height: 150px !important; width: auto !important; border-radius: 1.5rem !important; }
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* Pomodoro Lock Styles */
+        #pomodoro-lock-overlay {
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+        }
+    </style>
+</head>
+<body class="pb-64 pt-24">
+
+    <!-- CABECERA PRINCIPAL (REEMPLAZA EL SIDEBAR) -->
+    <header class="fixed top-0 left-0 w-full z-50 bg-white/60 backdrop-blur-xl border-b border-white/20 transition-all duration-300">
+        <div class="max-w-5xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <!-- Toolbar de Herramientas Tácticas -->
+            <div class="flex flex-wrap justify-center gap-2 bg-white/90 p-2 rounded-2xl shadow-sm border border-slate-100">
+                <button onclick="toggleMusicPanel()" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all shadow-sm bg-white" title="Pomodoro y Spotify">
+                    ⏱️ FOCO & VIBES
+                </button>
+                <button onclick="toggleLaunchpadModal()" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">🧰 COFRE</button>
+                <button onclick="togglePostit()" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">📝 NOTAS</button>
+                <button onclick="toggleTimeboxPanel()" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">📅 MURO</button>
+                <div class="w-px bg-slate-200 mx-1"></div>
+                <button onclick="showDonnaModal()" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">⚡ GATEWAY</button>
+                <button onclick="confirmRestoreSnapshot()" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all">🛟 RESPALDO</button>
+                <button id="fs-status-btn" onclick="initFileSystemAccess()" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all disconnected" title="Blindaje Local">
+                    <span id="fs-icon">🛡️</span> <span id="fs-label">DISCO</span>
+                </button>
+            </div>
+            
+            <div class="w-full md:w-64">
+                <div class="flex justify-between mb-1 pr-1">
+                    <span class="text-[9px] font-black uppercase text-slate-700 tracking-widest italic">Donna v25.6 Master</span>
+                    <span id="progress-text-top" class="text-xs font-black text-emerald-600">0%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden shadow-inner">
+                    <div id="progress-bar-top" class="progress-gradient h-full transition-all duration-700"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PANTALLA DE BLOQUEO POMODORO -->
+    <div id="pomodoro-lock-overlay" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center text-center transition-all duration-500">
+        <div class="pulse-dot absolute top-8 right-8" style="width: 20px; height: 20px;"></div>
+        <img src="https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=400" class="w-32 h-32 mx-auto rounded-[2rem] shadow-[0_0_40px_rgba(16,185,129,0.5)] border-2 border-emerald-400 mb-8 object-cover">
+        <h1 class="text-5xl font-black text-white tracking-tighter italic mb-4">Tiempo Finalizado</h1>
+        <p class="text-emerald-400 font-black tracking-widest uppercase text-sm mb-12">El bloque de trabajo ha concluido. Debes descansar o reorganizar tu estrategia.</p>
+        <button onclick="closePomodoroLock()" class="bg-emerald-600 text-white px-10 py-5 rounded-3xl font-black text-xs uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:bg-emerald-500 hover:scale-105 transition-all">DESBLOQUEAR SISTEMA</button>
+    </div>
+
+    <!-- PANEL TIMEBOXING (MURO TÁCTICO) -->
+    <div id="donna-timebox-panel">
+        <div class="p-6 pb-2 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-50">
+            <div>
+                <h3 class="ubuntu font-bold text-slate-800 text-xl flex items-center gap-2">
+                    <span class="text-emerald-500 font-black tracking-tighter">Muro</span> Táctico
+                </h3>
+                <span id="tb-carga-total" class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Carga: 0h 0m</span>
+            </div>
+            <button onclick="toggleTimeboxPanel()" class="text-slate-400 hover:text-slate-700 text-xl leading-none">✕</button>
+        </div>
+
+        <div class="tb-scroll-area" id="tb-scroll-area">
+            <div class="tb-canvas" id="tb-canvas" ondragover="handleTbDragOver(event)" ondrop="handleTbDrop(event)" ondragleave="handleTbDragLeave(event)">
+                <div id="tb-hours-container"></div>
+                <div id="tb-current-time-line" class="tb-current-time-line"></div>
+                <div id="tb-ghost" class="tb-ghost"></div>
+                <div id="tb-tasks-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANEL DONNA VIBES & POMODORO (MÚSICA) -->
+    <div id="music-panel" class="fixed left-1/2 top-[100px] w-[340px] glass-panel rounded-[2.5rem] p-8 shadow-2xl z-[1100] border-2 border-white">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="ubuntu font-bold text-slate-800 text-xl flex items-center gap-2" id="sidebar-spotify-icon">
+                <img src="https://drive.google.com/thumbnail?id=1Dd1T7zrfG5RbIcMTROQS51d_5k-UNhyT&sz=w100" class="w-6 h-6 object-contain">
+                <span class="text-emerald-600">Foco</span> & Vibes
+            </h3>
+            <div class="flex gap-2">
+                <button onclick="toggleMusicSettings()" class="text-slate-400 hover:text-emerald-500 transition-colors" title="Ajustes de Playlist">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </button>
+                <button onclick="killMusic()" class="text-rose-400 hover:text-rose-600 transition-colors" title="Modo Silencio">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
+                </button>
+                <button onclick="toggleMusicPanel()" class="text-slate-400 hover:text-slate-700 transition-colors ml-2" title="Cerrar Panel">✕</button>
+            </div>
+        </div>
+
+        <!-- POMODORO WIDGET -->
+        <div class="mb-6 bg-white/70 p-4 rounded-3xl border border-emerald-100 shadow-sm">
+            <h4 class="font-black text-[9px] text-emerald-600 uppercase tracking-[0.2em] mb-3">Técnica Pomodoro</h4>
+            <div class="flex gap-2 mb-3">
+                <button onclick="setPomodoro(25)" class="flex-1 py-1.5 bg-emerald-100 text-emerald-800 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-200 transition-colors">25m Foco</button>
+                <button onclick="setPomodoro(50)" class="flex-1 py-1.5 bg-emerald-100 text-emerald-800 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-200 transition-colors">50m Bloque</button>
+                <button onclick="setPomodoro(5)" class="flex-1 py-1.5 bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase hover:bg-slate-300 transition-colors">5m Break</button>
+            </div>
+            <div class="flex items-center justify-between bg-slate-900 text-white rounded-[1.5rem] p-4 shadow-inner border border-slate-700">
+                <span id="pomo-timer" class="text-4xl font-black tracking-tighter text-emerald-400 font-mono">25:00</span>
+                <div class="flex gap-2">
+                    <button onclick="togglePomodoro()" id="pomo-play-btn" class="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center hover:bg-emerald-500 transition-colors shadow-lg">▶</button>
+                    <button onclick="resetPomodoro()" class="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-700 transition-colors border border-slate-600">⏹</button>
+                </div>
+            </div>
+        </div>
+
+        <select id="mood-selector" onchange="changeMusicMood(this.value)" class="w-full mb-4 p-3 rounded-2xl bg-white/70 border border-emerald-100 text-slate-700 font-bold text-[11px] uppercase tracking-wider outline-none focus:ring-2 ring-emerald-200 shadow-sm transition-all cursor-pointer">
+            <!-- Dinámico -->
+        </select>
+
+        <div id="spotify-container" class="rounded-[2rem] overflow-hidden shadow-inner bg-slate-50 min-h-[352px] flex items-center justify-center border border-white">
+            <span class="text-slate-400 text-[10px] uppercase tracking-widest font-bold italic p-10 text-center">Selecciona un mood para iniciar conexión</span>
+        </div>
+
+        <div id="music-settings" class="hidden absolute inset-0 glass-panel rounded-[2.5rem] p-8 z-10 overflow-y-auto bg-white/95">
+            <div class="flex justify-between items-center mb-6">
+                <h4 class="font-bold text-emerald-800 text-xs uppercase tracking-widest">Ajustar Playlists</h4>
+                <button onclick="toggleMusicSettings()" class="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            <div id="settings-list" class="space-y-3"></div>
+            <button onclick="saveMusicSettings()" class="w-full mt-8 bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-emerald-700 active:scale-95 transition-all text-[10px] uppercase tracking-widest">GUARDAR EN MEMORIA</button>
+        </div>
+    </div>
+
+    <!-- PANEL MODAL DEL COFRE TÁCTICO -->
+    <div id="launchpad-modal-overlay">
+        <div class="glass-panel w-full max-w-lg rounded-[3rem] p-8 animate-taskIn shadow-2xl relative bg-white border-2 border-white" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-bold text-slate-800 tracking-tighter flex items-center gap-3">
+                    <span class="text-3xl">🧰</span> Cofre Táctico
+                </h3>
+                <div class="flex gap-3">
+                    <button onclick="toggleLaunchpadEdit()" class="text-slate-400 hover:text-emerald-500 transition-colors p-2 bg-slate-50 hover:bg-emerald-50 rounded-xl" title="Configurar Enlaces">⚙️</button>
+                    <button onclick="hideLaunchpadModal()" class="text-slate-400 hover:text-rose-500 transition-colors p-2 bg-slate-50 hover:bg-rose-50 rounded-xl">✕</button>
+                </div>
+            </div>
+
+            <div id="launchpad-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+
+            <div id="launchpad-config" class="hidden">
+                <h4 class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4 px-2 border-b border-emerald-100 pb-2">Editor de Enlaces</h4>
+                <div id="launchpad-edit-list" class="space-y-3 max-h-[400px] overflow-y-auto pr-2 pb-4"></div>
+                <button onclick="saveLaunchpadConfig()" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest mt-4 hover:bg-black transition-all shadow-lg">Guardar Configuración</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification-box" class="glass-panel rounded-3xl p-5 shadow-2xl border-l-4 border-l-emerald-500">
+        <div class="flex items-center gap-4">
+            <div id="noti-icon" class="w-12 h-12 flex-shrink-0 overflow-hidden rounded-2xl border-2 border-white bg-white"></div>
+            <div class="flex-1">
+                <h4 id="noti-title" class="text-[10px] font-black uppercase text-slate-800 tracking-tighter">Donna</h4>
+                <p id="noti-msg" class="text-xs font-bold text-slate-700 leading-tight"></p>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-5xl mx-auto px-6 text-slate-800 mt-10">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+            <div>
+                <h1 class="text-5xl font-black tracking-tighter italic text-slate-800">Dashboard de <span class="text-emerald-500">Donna</span></h1>
+                <p class="text-slate-700 text-[10px] font-bold uppercase tracking-widest mt-1 italic">Gestión Estratégica & Dirección</p>
+            </div>
+            <div class="flex gap-4 items-center">
+                <button onclick="toggleRadar()" id="radar-btn" class="w-12 h-12 glass-panel rounded-2xl flex items-center justify-center hover:scale-110 transition-all border-2 border-white shadow-lg relative">
+                    <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
+                    <div id="radar-count-badge" class="radar-badge hidden">0</div>
+                </button>
+                <div id="radar-panel" class="glass-panel absolute top-24 right-6 w-80 p-6 rounded-[2rem] shadow-2xl border-2 border-white z-[600] hidden">
+                    <h4 class="text-[10px] font-black uppercase text-emerald-600 tracking-[0.2em] mb-4">Radar de Urgencia</h4>
+                    <div id="radar-list" class="space-y-3"></div>
+                </div>
+                <div class="flex gap-3">
+                    <input type="text" id="global-search" oninput="handleSearch()" placeholder="Buscar..." class="glass-panel px-6 py-3 rounded-2xl text-sm border-none shadow-sm w-48 focus:w-64 transition-all">
+                    
+                    <button onclick="showAboutModal()" class="w-12 h-12 glass-panel rounded-2xl border-2 border-white shadow-lg overflow-hidden hover:scale-105 transition-transform" title="Ficha del Sistema">
+                        <img src="https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=200" alt="Donna" class="w-full h-full object-cover">
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <section id="priority-hub" class="mb-12" ondragover="handleDragOver(event)" ondrop="handleDropToPriority(event)">
+            <h2 class="text-xl font-black italic mb-4 uppercase tracking-tighter text-slate-800">Orden del Día</h2>
+            
+            <!-- EL ORDEN DEL DÍA MEJORADO -->
+            <div id="priority-podium" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6"></div>
+            
+            <div id="priority-empty-msg" class="p-8 text-center border-2 border-dashed border-slate-300 rounded-3xl text-slate-500 text-[10px] uppercase font-bold tracking-widest italic mt-4">Sin prioridades asignadas</div>
+        </section>
+
+        <div id="task-container" class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16"></div>
+
+        <div id="new-section-box" class="glass-panel p-8 rounded-[2.5rem] border-2 border-dashed border-slate-300 text-center mb-32 bg-white/10">
+            <div class="flex flex-col md:flex-row gap-4 max-w-md mx-auto relative">
+                <button onclick="toggleIconPicker()" id="icon-picker-btn" class="w-14 h-14 glass-panel rounded-xl text-2xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <span id="selected-icon-display">🚀</span>
+                </button>
+                <div id="icon-grid" class="icon-grid-picker hidden"></div>
+                <input type="text" id="new-section-title" placeholder="Nueva sección..." onkeypress="if(event.key==='Enter') addNewSection()" class="flex-1 px-5 py-3 rounded-xl border-none shadow-sm text-sm font-bold italic">
+                <button onclick="addNewSection()" class="bg-slate-900 text-white px-6 rounded-xl font-bold text-[10px] uppercase tracking-widest flex-shrink-0">Crear</button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-4xl z-50 no-print transition-all duration-300">
+        <div class="glass-panel p-4 md:p-6 rounded-[2.5rem] border-2 border-white shadow-2xl flex flex-col md:flex-row items-center gap-6">
+            <div class="flex-1 w-full">
+                <div class="flex justify-between mb-1">
+                    <span class="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Éxito de Sesión</span>
+                    <span id="progress-text-bottom" class="label-ubuntu text-xs font-black">0%</span>
+                </div>
+                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div id="progress-bar-bottom" class="progress-gradient h-full transition-all duration-700"></div>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="exportAllToJSON()" class="px-6 py-4 rounded-2xl bg-slate-800 text-white font-bold text-[9px] uppercase tracking-[0.2em] shadow-lg hover:bg-slate-700 transition-colors">RESPALDO</button>
+                <button onclick="generateAndPrintReport()" class="btn-close-day px-8 py-4 rounded-2xl font-bold text-[9px] uppercase tracking-[0.2em] shadow-lg hover:scale-105 transition-transform">CIERRE DE JORNADA</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- NOTAS RÁPIDAS -->
+    <div id="donna-postit" class="fixed z-[1200] flex flex-col hidden postit-note" style="top: 120px; right: 40px; min-height: 250px; min-width: 220px; width: 288px; height: 250px;">
+        <div id="postit-header" class="postit-header px-4 py-3 text-[10px] font-black uppercase tracking-widest flex justify-between items-center text-emerald-800 border-b border-emerald-200/50">
+            <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 4C4.44772 4 4 4.44772 4 5V19C4 19.5523 4.44772 20 5 20H14L20 14V5C20 4.44772 19.5523 4 19 4H5Z" fill="#a7f3d0" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 20V14H20" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Notas Rápidas
+            </span>
+            <button onclick="togglePostit()" class="hover:text-rose-500 transition-colors text-lg leading-none" title="Ocultar">✕</button>
+        </div>
+        <div class="postit-toolbar">
+            <button onmousedown="event.preventDefault(); formatText('bold')" class="format-btn" title="Negrita"><b>B</b></button>
+            <button onmousedown="event.preventDefault(); formatText('italic')" class="format-btn" title="Cursiva"><i>I</i></button>
+            <button onmousedown="event.preventDefault(); formatText('underline')" class="format-btn" title="Subrayado"><u>U</u></button>
+            <button onmousedown="event.preventDefault(); formatText('strikeThrough')" class="format-btn" title="Tachado"><s>S</s></button>
+        </div>
+        <div id="postit-content" class="w-full flex-1 px-4 pt-2 pb-6 postit-textarea text-emerald-900 text-[13px] font-medium border-none outline-none" contenteditable="true" placeholder="Escribe aquí..."></div>
+        <div id="postit-resizer" class="postit-resizer" title="Arrastra para redimensionar"></div>
+    </div>
+
+    <!-- FICHA TÉCNICA Y MODO FOCO -->
+    <div id="task-modal-overlay" onclick="closeTaskModal(event)">
+        <div class="glass-panel w-full max-w-4xl rounded-[2.5rem] p-10 animate-taskIn relative max-h-[95vh] overflow-y-auto bg-white" onclick="event.stopPropagation()">
+            
+            <div class="normal-modal-header flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+                <div>
+                    <span class="text-[9px] font-black text-emerald-500 uppercase tracking-[0.3em]">Caja Negra de Misión</span>
+                    <h3 id="modal-title-display" class="text-2xl font-bold text-slate-800 tracking-tighter">Detalles de Misión</h3>
+                </div>
+                <button onclick="hideTaskModal()" class="text-slate-300 hover:text-slate-600 text-2xl">✕</button>
+            </div>
+
+            <!-- Cabecera Modo Foco -->
+            <div id="focus-header-panel" class="focus-mode-only w-full bg-slate-900 text-white p-6 md:p-8 rounded-3xl mb-8 justify-between items-center shadow-2xl border-2 border-slate-800 transition-colors">
+                <div class="flex items-center gap-5 flex-1 min-w-0 pr-6">
+                    <img src="https://drive.google.com/thumbnail?id=1YnW_EE2NzRuEkzFmHsM7hFuCrp37nSon&sz=w400" class="h-28 md:h-32 w-auto object-contain drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                    <div id="focus-section-icon" class="hidden sm:block flex-shrink-0"></div>
+                    <div class="min-w-0">
+                        <h2 id="focus-section-title" class="text-emerald-400 font-black tracking-widest uppercase text-[10px] mb-1">Túnel de Inmersión</h2>
+                        <p id="focus-task-title-display" class="text-white text-xl md:text-3xl font-black italic tracking-tighter leading-tight break-words">Cargando misión...</p>
+                    </div>
+                </div>
+                <button onclick="exitFocusMode()" class="bg-rose-500 text-white px-6 py-4 rounded-2xl font-bold uppercase tracking-widest text-[10px] shadow-[0_0_15px_rgba(244,63,94,0.4)] hover:bg-rose-600 hover:scale-105 transition-all flex-shrink-0 ml-4">Abortar Misión</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <input type="text" id="modal-task-title" oninput="autoSave()" class="w-full bg-slate-50 p-4 rounded-xl text-sm font-bold border-none shadow-inner text-slate-800 focus:ring-2 focus:ring-emerald-400 outline-none" placeholder="Título...">
+                    <input type="date" id="modal-task-date" onchange="autoSave()" class="w-full bg-slate-50 p-4 rounded-xl border-none text-xs font-bold text-slate-700 outline-none">
+                    <textarea id="modal-task-notes" oninput="autoSave()" rows="5" class="w-full bg-slate-50 p-4 rounded-xl text-sm border-none resize-none shadow-inner text-slate-700 focus:ring-2 focus:ring-emerald-400 outline-none" placeholder="Notas operativas de la misión..."></textarea>
+                    <input type="url" id="modal-task-link-input" onkeydown="if(event.key==='Enter'){event.preventDefault();addLinkTag();}" class="w-full bg-slate-50 p-4 rounded-xl text-[10px] border-none shadow-inner text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400" placeholder="Pega URL y pulsa Enter para adjuntar...">
+                    <div id="modal-links-container" class="flex flex-wrap gap-2 mt-2"></div>
+                </div>
+                
+                <div class="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100 flex flex-col shadow-inner">
+                    <h4 class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Pasos Tácticos / Checklist</h4>
+                    <input type="text" id="new-subtask-input" onkeydown="if(event.key==='Enter') addSubtask()" class="w-full bg-white p-4 rounded-xl text-xs font-bold border border-emerald-100 mb-4 shadow-sm outline-none focus:border-emerald-400 text-slate-700" placeholder="Añadir paso...">
+                    <div id="subtasks-list" class="space-y-2 flex-1 overflow-y-auto pr-2"></div>
+                </div>
+            </div>
+
+            <!-- INTELIGENCIA DE DONNA (WIDGET AI) -->
+            <div class="donna-ai-widget" id="donna-advice-panel">
+                <img src="https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=200" class="donna-avatar-ai">
+                <div class="flex-1">
+                    <span class="donna-ai-label">INTELIGENCIA TÁCTICA DE DONNA</span>
+                    <p class="donna-ai-text" id="donna-advice-text">"Analizando la misión..."</p>
+                </div>
+                <button onclick="regenerateDonnaAdvice(currentEditingTaskId)" class="p-2 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500 hover:text-white rounded-xl transition-colors" title="Pedir otro consejo">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                </button>
+            </div>
+            
+            <button onclick="hideTaskModal()" class="normal-modal-header w-full bg-slate-900 text-white p-4 rounded-xl font-bold text-[10px] uppercase tracking-widest mt-6 hover:bg-black transition-all">Sellar Misión</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE PRÓRROGA DE TIMEBOXING (SNOOZE) -->
+    <div id="prorroga-modal-overlay">
+        <div class="glass-panel w-full max-w-sm rounded-[3rem] p-10 text-center animate-taskIn shadow-2xl relative bg-slate-900 border-2 border-emerald-500">
+            <div class="pulse-dot absolute top-8 right-8"></div>
+            <img src="https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=200" class="w-20 h-20 mx-auto rounded-[1.5rem] shadow-[0_0_20px_rgba(16,185,129,0.5)] border-2 border-emerald-400 mb-6 object-cover">
+            
+            <h3 class="text-2xl font-black text-white tracking-tighter italic mb-2">¡Tiempo <span class="text-emerald-400">Agotado!</span></h3>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed mb-8">
+                La misión ha llegado a su límite táctico. Tienes 2 minutos para decidir antes del cierre automático.
+            </p>
+            
+            <div class="flex flex-col gap-3">
+                <button onclick="resolverProrroga('add')" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_0_15px_rgba(16,185,129,0.4)] hover:bg-emerald-500 hover:scale-105 transition-all">
+                    +15 MIN (PRÓRROGA)
+                </button>
+                <button onclick="resolverProrroga('next')" class="w-full bg-slate-800 text-slate-300 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-700 hover:text-white transition-colors border border-slate-700">
+                    TACHAR Y SIGUIENTE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OTROS MODALES (About, Gateway, Rename, Reporte, Confirm) -->
+    <div id="about-modal-overlay" onclick="closeAboutModal(event)">
+        <div class="glass-panel relative w-full max-w-md rounded-[3rem] p-10 text-center shadow-2xl bg-white/90 border-2 border-white animate-taskIn" onclick="event.stopPropagation()">
+            <button onclick="hideAboutModal()" class="absolute top-6 right-6 text-slate-400 hover:text-slate-700 transition-colors">✕</button>
+            <img src="https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=200" class="w-24 h-24 mx-auto rounded-[2rem] shadow-xl border-4 border-white mb-6 object-cover">
+            <h2 class="text-3xl font-black text-slate-800 tracking-tighter italic mb-1">Donna <span class="text-emerald-500">OS</span></h2>
+            <div class="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full mb-6 border border-emerald-200">v25.6 Master Build</div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest leading-relaxed mb-8 px-4">Sistema Central Integrado de Gestión Estratégica, Memoria Física y Control de Operaciones.</p>
+        </div>
+    </div>
+
+    <div id="donna-modal-overlay" onclick="closeDonnaModal(event)">
+        <div class="glass-panel w-full max-w-2xl rounded-[2.5rem] p-8 animate-taskIn shadow-2xl relative bg-white" onclick="event.stopPropagation()">
+            <div class="flex items-center gap-4 mb-6">
+                <img src="https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=200" class="w-14 h-14 rounded-2xl border-2 border-white shadow-md">
+                <div>
+                    <span class="label-ubuntu text-[10px] font-black uppercase text-emerald-600 tracking-widest">Donna Gateway v25.6</span>
+                    <h3 class="text-2xl font-bold text-slate-800 tracking-tighter">Importación Manual JSON</h3>
+                </div>
+            </div>
+            <textarea id="donna-json-input" rows="8" placeholder="Pega el JSON de respaldo aquí..." class="w-full bg-slate-900 text-emerald-300 font-mono text-[10px] p-5 rounded-2xl border-none resize-none mb-6 shadow-inner border-emerald-500/30 border-2"></textarea>
+            <div class="flex gap-3">
+                <button onclick="processDonnaImport()" class="flex-1 bg-emerald-600 text-white p-4 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-700">Importar Datos</button>
+                <button onclick="hideDonnaModal()" class="px-6 bg-slate-100 text-slate-500 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all hover:bg-slate-200">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="rename-modal-overlay">
+        <div class="glass-panel w-full max-w-sm rounded-[2.5rem] p-10 animate-taskIn text-center relative bg-white">
+            <h3 class="label-ubuntu text-xl font-bold text-slate-800 mb-6 italic uppercase tracking-tighter">Editar Sección</h3>
+            <div class="relative w-fit mx-auto mb-6">
+                <button onclick="toggleEditIconPicker()" id="edit-icon-picker-btn" class="w-16 h-16 glass-panel rounded-2xl text-3xl flex items-center justify-center border-4 border-white shadow-lg transition-transform hover:scale-105"><span id="edit-selected-icon-display">🚀</span></button>
+                <div id="edit-icon-grid" class="icon-grid-picker hidden !top-full !bottom-auto !mt-2 !left-1/2 !-translate-x-1/2"></div>
+            </div>
+            <input type="text" id="rename-section-input" class="w-full bg-slate-50 p-4 rounded-xl text-sm font-bold border-none mb-6 focus:ring-2 focus:ring-emerald-400 outline-none shadow-inner text-slate-800" placeholder="Nuevo nombre...">
+            <div class="flex gap-3">
+                <button onclick="confirmRename()" class="flex-1 bg-slate-900 text-white p-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all">Guardar</button>
+                <button onclick="hideRenameModal()" class="flex-1 bg-slate-100 text-slate-500 p-4 rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="report-modal-overlay">
+        <div class="glass-panel w-full max-w-5xl rounded-[3rem] p-10 animate-taskIn shadow-2xl relative max-h-[95vh] overflow-y-auto bg-slate-50 border-0">
+            <div class="no-print flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-6 rounded-[2rem] shadow-sm">
+                <h1 class="text-3xl font-black text-slate-800 tracking-tighter italic m-0">Informe de Cierre</h1>
+                <div class="flex gap-4">
+                    <button onclick="clearCompletedTasksManual()" class="bg-rose-50 text-rose-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-100 transition-colors shadow-sm">Purgar Storage</button>
+                    <button onclick="window.print()" class="bg-emerald-600 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 shadow-md flex items-center gap-2 transition-all"><span>🖨️</span> Descargar PDF</button>
+                    <button onclick="document.getElementById('report-modal-overlay').style.display='none'" class="bg-slate-100 text-slate-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-colors">Volver</button>
+                </div>
+            </div>
+            
+            <div id="print-area" class="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-sm border border-slate-100">
+                <div class="flex flex-col md:flex-row items-center gap-8 mb-10 border-b-2 border-emerald-50 pb-8">
+                    <img id="report-header-img" src="https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=400" class="h-32 md:h-40 w-auto rounded-3xl object-cover shadow-lg border-4 border-white flex-shrink-0 bg-slate-100">
+                    <div class="text-center md:text-left flex-1">
+                        <div class="flex flex-wrap justify-center md:justify-start gap-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">
+                            <span class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200" id="report-date">---</span>
+                            <span class="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200" id="report-time">---</span>
+                        </div>
+                        <div class="p-6 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-[1.5rem] border border-emerald-100/50 shadow-inner">
+                            <p id="donna-random-phrase" class="text-sm text-emerald-900 font-black leading-relaxed italic">"Auditando eficiencia operativa..."</p>
+                        </div>
+                    </div>
+                </div>
+                <div id="report-content-area" class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    <div class="space-y-8">
+                        <section><div class="flex items-center gap-3 mb-6"><span class="text-2xl">✅</span><h2 class="text-slate-900 text-xl font-black m-0 uppercase tracking-tight">Consolidado</h2></div><div id="report-completed-list" class="space-y-4"></div></section>
+                    </div>
+                    <div class="space-y-8">
+                        <section><div class="flex items-center gap-3 mb-6"><span class="text-2xl">⚡</span><h2 class="text-slate-900 text-xl font-black m-0 uppercase tracking-tight">Rendimiento</h2></div><div id="report-priority-stats" class="mb-8"></div></section>
+                        <section><div class="flex items-center gap-3 mb-6"><span class="text-2xl">🚀</span><h2 class="text-slate-900 text-xl font-black m-0 uppercase tracking-tight">Proyección</h2></div><div id="report-tomorrow-priorities" class="space-y-3"></div></section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-modal-overlay">
+        <div class="glass-panel w-full max-w-xs rounded-[2rem] p-8 text-center animate-taskIn border-2 border-white shadow-2xl bg-white/95">
+            <h3 class="text-lg font-bold text-slate-800 mb-6" id="confirm-title">¿Aceptar?</h3>
+            <div class="flex gap-3">
+                <button id="confirm-yes" class="flex-1 bg-slate-900 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">Aceptar</button>
+                <button id="confirm-no" class="flex-1 bg-slate-100 text-slate-400 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DONNA_IMG = "https://drive.google.com/thumbnail?id=1SQUDGhNCerUMNhzyO0JcX8uqcu6JYXJe&sz=200";
+        const CUSTOM_LOGOS = {
+            'EXCEL': "https://drive.google.com/thumbnail?id=1tu06opnZURiPGboJjACwjHmaZtRGbYyl&sz=w200",
+            'DONNA': DONNA_IMG,
+            'FEDERICO': "https://drive.google.com/thumbnail?id=1IzVn7XvAKL3sH5yQjyNrmFsOwnTLmP8_&sz=w200", 
+            'EONESIA': "https://drive.google.com/thumbnail?id=1rxJ4nYDZmVnw4HRZwtX_sQux9_CkxSit&sz=w200",
+            'ROBOKIDS': "https://drive.google.com/thumbnail?id=1L92Asy8PWMprJeWT3sWhFOVxzRr73d7K&sz=w200",
+            'INCYDE': "https://drive.google.com/thumbnail?id=1NUsziIjtVJZc_RNfu5sxuSa2BmYh0Zt-&sz=w200",
+            'HYGGE': "https://drive.google.com/thumbnail?id=1EVeuHMMkydxAiJBFiyHltYbdN7fMkkPd&sz=w200",
+            'QURTUBA': "https://drive.google.com/thumbnail?id=1Vw7kuA--u0lam6UxE--CoZVuyNAuVZKL&sz=w200",
+            'SERGIO': "https://drive.google.com/thumbnail?id=1gWTmwNDho9iWWVLdT5acmssJjFs8LHpP&sz=w200",
+            'CHARLY': "https://drive.google.com/thumbnail?id=1lGv7uPrARU9tpZZGDKPU09ia1Pwf8jW8&sz=w200",
+            'MUSO': "https://drive.google.com/thumbnail?id=1eVw6VsMKf6T9t2YlAAdOwo371Mdtr_Kn&sz=w200",
+            'RAFA': "https://drive.google.com/thumbnail?id=1ZmBGC3VUqO0Uf0KDC8gF8OwfuvIjoySK&sz=w200",
+            'NATALIA': "https://drive.google.com/thumbnail?id=1i63CTiU4J5jgewfU-CxfB0dOv9DzK41L&sz=w200"
+        };
+        const BRAND_THEMES = {
+            'DONNA': { panel: '!border-2 !border-emerald-400/40 shadow-[0_4px_20px_rgba(16,185,129,0.15)]', title: 'text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600', subtitle: '!text-emerald-500', taskHover: 'hover:!bg-emerald-50', iconClass: '!text-emerald-500 hover:!text-emerald-700 transition-colors', starColors: ['!text-emerald-300', '!text-emerald-500', '!text-emerald-700'] },
+            'EONESIA': { panel: '!border-2 !border-[#8A3FFC]/40 shadow-[0_4px_20px_rgba(0,196,255,0.15)]', title: 'text-transparent bg-clip-text bg-gradient-to-r from-[#00C4FF] via-[#8A3FFC] to-[#FF66B2]', subtitle: '!text-[#8A3FFC]', taskHover: 'hover:!bg-indigo-50', iconClass: '!text-[#00C4FF] hover:!text-[#FF66B2] transition-colors', starColors: ['!text-[#00C4FF]', '!text-[#8A3FFC]', '!text-[#FF66B2]'] },
+            'QURTUBA': { panel: '!border-2 !border-[#C5A059]/50 shadow-[0_4px_20px_rgba(197,160,89,0.15)]', title: 'text-transparent bg-clip-text bg-gradient-to-r from-[#C5A059] to-[#8c6d31]', subtitle: '!text-[#C5A059]', taskHover: 'hover:!bg-[#C5A059]/10', taskText: '!text-[#1A1A1A]', iconClass: '!text-[#C5A059] hover:!text-[#1A1A1A] transition-colors', starColors: ['!text-[#d4af37]', '!text-[#C5A059]', '!text-[#1A1A1A]'] },
+            'ROBOKIDS': { panel: '!border-2 !border-slate-500/40 shadow-[0_4px_20px_rgba(100,116,139,0.15)]', title: 'text-transparent bg-clip-text bg-gradient-to-r from-slate-500 to-slate-800', subtitle: '!text-slate-500', taskHover: 'hover:!bg-slate-100', iconClass: '!text-slate-500 hover:!text-slate-800 transition-colors', starColors: ['!opacity-50 grayscale', '!opacity-80 grayscale', '!opacity-100 !grayscale-0'], starIcon: '🤖' },
+            '🍼': { panel: '!border-2 !border-rose-300/50 shadow-[0_4px_20px_rgba(244,114,182,0.15)]', title: 'text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-fuchsia-400', subtitle: '!text-rose-400', taskHover: 'hover:!bg-rose-50', taskText: '!text-slate-700', iconClass: '!text-rose-300 hover:!text-fuchsia-500 transition-colors', starColors: ['!text-rose-300', '!text-rose-400', '!text-slate-700'], starIcon: '♥' }
+        };
+        const EMOJIS = ["🍼", "🚀", "🤖", "📅", "📢", "💰", "🎨", "🎮", "💼", "🏢", "🪴", "🛠️", "🛒", "🧠", "🏠", "💡", "✈️", "🔍"];
+        const TRASH_SVG = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>`;
+        const PIN_SVG = `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v3.667l2.25 2.25V14h-5.5v3.5L10 19l-1.75-1.5V14H2.75v-4.083L5 7.667V4z"></path></svg>`;
+
+        let sections = JSON.parse(localStorage.getItem('eonesiaSections')) || [];
+        let completedTasks = JSON.parse(localStorage.getItem('completedTasks')) || [];
+        let priorityOrder = JSON.parse(localStorage.getItem('priorityOrder')) || [];
+        
+        let musicConfig = JSON.parse(localStorage.getItem('eonesiaMusic')) || {
+            currentMode: -1,
+            playlists: [
+                { name: "Clásica Enfoque", url: "https://open.spotify.com/playlist/09yz2h86ElsO8dwbxyplwt?si=bFaDeLNlStCatLWcE-Mb0Q" },
+                { name: "Chill House Flow", url: "https://open.spotify.com/playlist/7wDZ5nB0Wb1tcoloILplN8?si=HpJmeebLQCaALk3tijmhUg" },
+                { name: "War Disney", url: "https://open.spotify.com/album/4Cj70KgAxrJZWADeA8h9MI?si=zixbWt1sTxCEgtydZkQhoQ" },
+                { name: "Covers Ambient", url: "https://open.spotify.com/playlist/0JUvjIUw7xzAFI3xZIz7em?si=TWqcMna-TTiGVz2G2p2rDQ" }
+            ]
+        };
+
+        let launchpadLinks = JSON.parse(localStorage.getItem('donnaLaunchpad')) || [
+            { icon: "📁", title: "Drive", url: "https://drive.google.com" },
+            { icon: "📧", title: "Correo", url: "https://mail.google.com" },
+            { icon: "📅", title: "Calendario", url: "https://calendar.google.com" },
+            { icon: "🤖", title: "ChatGPT", url: "https://chatgpt.com" }
+        ];
+
+        let selectedEmoji = "🚀";
+        let currentEditingTaskId = null;
+        let currentRenamingSectionId = null;
+        let currentEditSectionIcon = ""; 
+        let isDragging = false;
+        let searchTerm = "";
+        let fileHandle = null; 
+        let dailySnapshot = null;
+        let postitData = JSON.parse(localStorage.getItem('donnaPostit')) || { visible: false, text: "", x: null, y: null, w: 288, h: 250 };
+        const generateTaskId = () => Date.now() + Math.random();
+        const generateSecId = () => "sec-" + Date.now();
+
+        // --- MOTOR POMODORO ---
+        let pomoInterval = null;
+        let pomoTimeRemaining = 25 * 60;
+        let pomoIsRunning = false;
+
+        window.setPomodoro = function(minutes) {
+            pomoTimeRemaining = minutes * 60;
+            updatePomoDisplay();
+            if(pomoIsRunning) {
+                clearInterval(pomoInterval);
+                pomoIsRunning = false;
+                document.getElementById('pomo-play-btn').innerText = "▶";
+            }
+        }
+
+        window.togglePomodoro = function() {
+            if(pomoIsRunning) {
+                clearInterval(pomoInterval);
+                pomoIsRunning = false;
+                document.getElementById('pomo-play-btn').innerText = "▶";
+            } else {
+                if(pomoTimeRemaining <= 0) pomoTimeRemaining = 25 * 60;
+                pomoIsRunning = true;
+                document.getElementById('pomo-play-btn').innerText = "⏸";
+                pomoInterval = setInterval(() => {
+                    pomoTimeRemaining--;
+                    updatePomoDisplay();
+                    if(pomoTimeRemaining <= 0) {
+                        clearInterval(pomoInterval);
+                        pomoIsRunning = false;
+                        document.getElementById('pomo-play-btn').innerText = "▶";
+                        triggerPomodoroLock();
+                    }
+                }, 1000);
+            }
+        }
+
+        window.resetPomodoro = function() {
+            clearInterval(pomoInterval);
+            pomoIsRunning = false;
+            pomoTimeRemaining = 25 * 60;
+            document.getElementById('pomo-play-btn').innerText = "▶";
+            updatePomoDisplay();
+        }
+
+        function updatePomoDisplay() {
+            const m = Math.floor(pomoTimeRemaining / 60).toString().padStart(2, '0');
+            const s = (pomoTimeRemaining % 60).toString().padStart(2, '0');
+            const display = document.getElementById('pomo-timer');
+            if(display) display.innerText = `${m}:${s}`;
+        }
+
+        function triggerPomodoroLock() {
+            playSound('alarm');
+            document.getElementById('pomodoro-lock-overlay').style.display = 'flex';
+        }
+
+        window.closePomodoroLock = function() {
+            document.getElementById('pomodoro-lock-overlay').style.display = 'none';
+        }
+
+        // --- SISTEMA DE ARCHIVOS Y BASE DE DATOS ---
+        async function initFileSystemAccess() {
+            try {
+                if (fileHandle) {
+                    const perm = await fileHandle.queryPermission({mode: 'readwrite'});
+                    if (perm !== 'granted') {
+                        const req = await fileHandle.requestPermission({mode: 'readwrite'});
+                        if (req !== 'granted') throw new Error("Permiso denegado");
+                    }
+                } else {
+                    fileHandle = await window.showOpenFilePicker({
+                        types: [{ description: 'Archivo de Respaldo Donna', accept: {'application/json': ['.json']} }]
+                    }).then(handles => handles[0]).catch(async () => {
+                        return await window.showSaveFilePicker({ suggestedName: 'donna_master_backup.json' });
+                    });
+                    const db = await openDB();
+                    await db.put('config', fileHandle, 'donnaFileHandle');
+                }
+                updateFSStatus(true);
+                const file = await fileHandle.getFile();
+                const content = await file.text();
+                if (content) {
+                    const recoveredData = JSON.parse(content);
+                    dailySnapshot = recoveredData.dailySnapshot || null;
+                    if (sections.length === 0 && recoveredData.sections && recoveredData.sections.length > 0) {
+                        sections = recoveredData.sections;
+                        completedTasks = recoveredData.completedTasks || [];
+                        priorityOrder = recoveredData.priorityOrder || [];
+                        if (recoveredData.musicConfig) { musicConfig = recoveredData.musicConfig; initMusic(); }
+                        if (recoveredData.launchpadLinks) launchpadLinks = recoveredData.launchpadLinks;
+                        if (recoveredData.postitData) {
+                            postitData = recoveredData.postitData;
+                            document.getElementById('postit-content').innerHTML = postitData.text;
+                            if (postitData.visible) document.getElementById('donna-postit').classList.remove('hidden');
+                        }
+                        if (recoveredData.timeboxTasks) { timeboxTasks = recoveredData.timeboxTasks; renderTimeboxes(); }
+                        saveState(); renderAll();
+                        showNotification("Memoria restaurada desde el disco.", "SISTEMA RECUPERADO");
+                    }
+                }
+                await syncToDisk();
+            } catch (err) { console.error(err); updateFSStatus(false); }
+        }
+
+        async function syncToDisk() {
+            if (!fileHandle) return;
+            try {
+                if (await fileHandle.queryPermission({mode: 'readwrite'}) !== 'granted') return;
+                const todayStr = new Date().toLocaleDateString();
+                if (sections && sections.length > 0) {
+                    if (!dailySnapshot || dailySnapshot.date !== todayStr) {
+                        dailySnapshot = { date: todayStr, sections: JSON.parse(JSON.stringify(sections)), completedTasks: JSON.parse(JSON.stringify(completedTasks)), priorityOrder: JSON.parse(JSON.stringify(priorityOrder)) };
+                    }
+                }
+                const writable = await fileHandle.createWritable();
+                const data = { sections, completedTasks, priorityOrder, postitData, musicConfig, launchpadLinks, timeboxTasks, lastSync: new Date().toISOString(), dailySnapshot: dailySnapshot };
+                await writable.write(JSON.stringify(data, null, 2));
+                await writable.close();
+            } catch (err) { console.error(err); updateFSStatus(false); }
+        }
+        
+        window.confirmRestoreSnapshot = async function() {
+            if (!fileHandle) { showNotification("El blindaje no está activo.", "AVISO"); return; }
+            if (!dailySnapshot) { showNotification("Aún no hay un Snapshot diario.", "AVISO"); return; }
+            customConfirm(`Restaurarás el Dashboard al inicio de la jornada (${dailySnapshot.date}). ¿Estás seguro?`, () => {
+                sections = JSON.parse(JSON.stringify(dailySnapshot.sections));
+                completedTasks = JSON.parse(JSON.stringify(dailySnapshot.completedTasks));
+                priorityOrder = JSON.parse(JSON.stringify(dailySnapshot.priorityOrder));
+                saveState(); renderAll(); syncToDisk();
+                showNotification("Dashboard restaurado.", "RESTAURACIÓN");
+            });
+        }
+
+        function updateFSStatus(connected) {
+            const btn = document.getElementById('fs-status-btn');
+            if (connected) {
+                btn.className = "px-4 py-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 rounded-xl transition-all"; 
+                document.getElementById('fs-label').innerText = "DISCO ACTIVO"; 
+                document.getElementById('fs-icon').innerHTML = "🛡️";
+            } else {
+                btn.className = "px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all disconnected"; 
+                document.getElementById('fs-label').innerText = "DISCO";
+                document.getElementById('fs-icon').innerHTML = "⚠️";
+            }
+        }
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('DonnaDB', 1);
+                req.onupgradeneeded = () => req.result.createObjectStore('config');
+                req.onsuccess = () => resolve({
+                    put: (store, val, key) => req.result.transaction(store, 'readwrite').objectStore(store).put(val, key),
+                    get: (store, key) => new Promise(res => {
+                        const r = req.result.transaction(store).objectStore(store).get(key);
+                        r.onsuccess = () => res(r.result); r.onerror = () => res(null);
+                    })
+                });
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); 
+            osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
+            
+            if (type === 'complete') { osc.frequency.setValueAtTime(523, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.1); } 
+            else if (type === 'undo') { osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(220, now + 0.2); } 
+            else if (type === 'portal') { osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(400, now + 0.3); } 
+            else if (type === 'alarm') { 
+                osc.type = 'square'; osc.frequency.setValueAtTime(880, now); osc.frequency.setValueAtTime(0, now + 0.2);
+                osc.frequency.setValueAtTime(880, now + 0.4); osc.frequency.setValueAtTime(0, now + 0.6);
+            }
+            else { osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.1); }
+            
+            gain.gain.setValueAtTime(0.05, now); osc.start(now); osc.stop(now + (type==='alarm'?0.8:(type==='portal'?0.3:0.2)));
+        }
+
+        // --- TIMEBOXING (MURO) ---
+        const TB_START_HOUR = 7; const TB_END_HOUR = 23;
+        let timeboxTasks = JSON.parse(localStorage.getItem('donnaTimeboxTasks')) || [];
+        let tbResizingTaskIdx = null, tbDraggingTaskIdx = null, tbStartY = 0, tbStartMins = 0, tbStartDuration = 0;
+
+        window.toggleTimeboxPanel = function() {
+            const p = document.getElementById('donna-timebox-panel'); p.classList.toggle('active');
+            if(p.classList.contains('active')) { renderTimeboxes(); scrollToCurrentTime(); }
+        }
+        function scrollToCurrentTime() { const now = new Date(); const currentMins = ((now.getHours() - TB_START_HOUR) * 60) + now.getMinutes(); if (currentMins > 0) document.getElementById('tb-scroll-area').scrollTop = currentMins - 100; }
+        function formatTbTime(minsFromStart) { const totalMins = (TB_START_HOUR * 60) + minsFromStart; const h = Math.floor(totalMins / 60); const m = totalMins % 60; return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`; }
+
+        window.renderTimeboxes = function() {
+            const canvas = document.getElementById('tb-canvas'); const hoursContainer = document.getElementById('tb-hours-container'); const container = document.getElementById('tb-tasks-container'); const timeLine = document.getElementById('tb-current-time-line');
+            if(!canvas || !container || !hoursContainer) return;
+            if(hoursContainer.innerHTML === "") {
+                let hoursHtml = ""; for(let h = TB_START_HOUR; h <= TB_END_HOUR; h++) { const top = (h - TB_START_HOUR) * 60; hoursHtml += `<div class="tb-hour-label" style="top: ${top}px;">${h.toString().padStart(2,'0')}:00</div>`; }
+                hoursContainer.innerHTML = hoursHtml;
+            }
+            const now = new Date(); const h = now.getHours(); const m = now.getMinutes(); const currentMins = ((h - TB_START_HOUR) * 60) + m;
+            if (h >= TB_START_HOUR && h <= TB_END_HOUR) { timeLine.style.display = 'block'; timeLine.style.top = `${currentMins}px`; } else { timeLine.style.display = 'none'; }
+            const totalMins = timeboxTasks.reduce((acc, curr) => acc + curr.durationMins, 0);
+            const th = Math.floor(totalMins / 60); const tm = totalMins % 60; document.getElementById('tb-carga-total').innerText = `Carga: ${th}h ${tm}m`;
+            let taskEndedId = null;
+            container.innerHTML = timeboxTasks.map((tb, idx) => {
+                const isCompact = tb.durationMins <= 30; const endMins = tb.startMins + tb.durationMins; const isActive = (currentMins >= tb.startMins && currentMins < endMins);
+                if (currentMins === endMins && !tb.notified && h < TB_END_HOUR) { taskEndedId = tb.id; tb.notified = true; }
+                return `
+                    <div class="tb-task ${isActive ? 'tb-active' : ''} ${isCompact ? 'tb-compact' : ''}" style="top: ${tb.startMins}px; height: ${tb.durationMins}px;" onmousedown="startTbDrag(event, ${idx})">
+                        <div class="tb-content">
+                            <div class="flex items-center justify-between"><div class="tb-title flex items-center gap-2">${getIconHtml(tb.icon, "w-4 h-4", false)} ${tb.text}${isActive ? '<span class="pulse-dot"></span>' : ''}</div>${!isCompact ? `<div class="tb-time">${formatTbTime(tb.startMins)} - ${formatTbTime(endMins)}</div>` : ''}</div>
+                            ${isCompact ? `<div class="tb-time ml-auto mr-12">${formatTbTime(tb.startMins)}</div>` : ''}
+                            <div class="tb-actions"><button onclick="removeTimebox(${idx}, event)" class="action-icon hover:bg-rose-100 hover:text-rose-600 rounded-md p-1">✕</button><button onclick="completeTimebox(${idx}, event)" class="action-icon hover:bg-emerald-100 hover:text-emerald-600 rounded-md p-1">✓</button></div>
+                        </div>
+                        <div class="tb-resizer" onmousedown="startTbResize(event, ${idx})"></div>
+                    </div>`;
+            }).join('');
+            if (taskEndedId !== null) { saveTimeboxes(); triggerTimeboxAlarm(taskEndedId); }
+            updateDocumentTitle(isActiveBlockRunning(currentMins));
+        };
+
+        function isActiveBlockRunning(currentMins) { return timeboxTasks.some(tb => currentMins >= tb.startMins && currentMins < (tb.startMins + tb.durationMins)); }
+        function updateDocumentTitle(isActive) {
+            const now = new Date(); const currentMins = ((now.getHours() - TB_START_HOUR) * 60) + now.getMinutes();
+            let runningTask = timeboxTasks.find(tb => currentMins >= tb.startMins && currentMins < (tb.startMins + tb.durationMins));
+            if (runningTask) { const remaining = (runningTask.startMins + runningTask.durationMins) - currentMins; document.title = `[${remaining}m] ${runningTask.text} - Donna`; } else { document.title = `Dashboard de Donna`; }
+        }
+        setInterval(() => {
+            const p = document.getElementById('donna-timebox-panel'); if(p && p.classList.contains('active')) { renderTimeboxes(); } else {
+                const now = new Date(); const currentMins = ((now.getHours() - TB_START_HOUR) * 60) + now.getMinutes(); updateDocumentTitle(false);
+                timeboxTasks.forEach(tb => { const endMins = tb.startMins + tb.durationMins; if (currentMins === endMins && !tb.notified) { tb.notified = true; saveTimeboxes(); triggerTimeboxAlarm(tb.id); } });
+            }
+        }, 60000);
+
+        window.handleTbDragOver = function(e) { e.preventDefault(); const rect = document.getElementById('tb-canvas').getBoundingClientRect(); const y = e.clientY - rect.top; const snappedY = Math.floor(y / 15) * 15; const ghost = document.getElementById('tb-ghost'); ghost.style.display = 'block'; ghost.style.top = snappedY + 'px'; ghost.style.height = '60px'; }
+        window.handleTbDragLeave = function(e) { document.getElementById('tb-ghost').style.display = 'none'; document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target')); }
+        window.handleTbDrop = function(e) {
+            e.preventDefault(); document.getElementById('tb-ghost').style.display = 'none'; document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+            const taskId = parseFloat(e.dataTransfer.getData('taskId')); const task = findTaskById(taskId);
+            if (task) {
+                const rect = document.getElementById('tb-canvas').getBoundingClientRect(); const y = e.clientY - rect.top; const snappedY = Math.floor(y / 15) * 15;
+                timeboxTasks.push({ id: Date.now(), taskId: taskId, text: task.text, icon: task.sectionIcon || "🎯", startMins: snappedY, durationMins: 60, notified: false });
+                resolveOverlaps(); saveTimeboxes(); playSound('complete'); if(!document.getElementById('donna-timebox-panel').classList.contains('active')) toggleTimeboxPanel();
+            }
+        }
+        function resolveOverlaps() {
+            timeboxTasks.sort((a, b) => a.startMins - b.startMins);
+            for(let i = 0; i < timeboxTasks.length - 1; i++) {
+                const current = timeboxTasks[i]; const next = timeboxTasks[i+1]; const currentEnd = current.startMins + current.durationMins;
+                if(currentEnd > next.startMins) { next.startMins = currentEnd; next.notified = false; }
+            }
+        }
+        window.startTbDrag = function(e, idx) { if(e.target.classList.contains('tb-resizer') || e.target.classList.contains('action-icon') || e.target.closest('.checkbox-eonesia')) return; e.preventDefault(); tbDraggingTaskIdx = idx; tbStartY = e.clientY; tbStartMins = timeboxTasks[idx].startMins; document.addEventListener('mousemove', tbDrag); document.addEventListener('mouseup', stopTbDrag); }
+        function tbDrag(e) { if(tbDraggingTaskIdx === null) return; const dy = e.clientY - tbStartY; let newMins = tbStartMins + dy; newMins = Math.floor(newMins / 15) * 15; if (newMins < 0) newMins = 0; timeboxTasks[tbDraggingTaskIdx].startMins = newMins; renderTimeboxes(); }
+        function stopTbDrag() { if(tbDraggingTaskIdx !== null) { tbDraggingTaskIdx = null; resolveOverlaps(); saveTimeboxes(); } document.removeEventListener('mousemove', tbDrag); document.removeEventListener('mouseup', stopTbDrag); }
+        window.startTbResize = function(e, idx) { e.preventDefault(); e.stopPropagation(); tbResizingTaskIdx = idx; tbStartY = e.clientY; tbStartDuration = timeboxTasks[idx].durationMins; document.addEventListener('mousemove', tbResize); document.addEventListener('mouseup', stopTbResize); }
+        function tbResize(e) { if(tbResizingTaskIdx === null) return; const dy = e.clientY - tbStartY; let newDur = tbStartDuration + dy; newDur = Math.floor(newDur / 15) * 15; if (newDur < 15) newDur = 15; timeboxTasks[tbResizingTaskIdx].durationMins = newDur; renderTimeboxes(); }
+        function stopTbResize() { if(tbResizingTaskIdx !== null) { tbResizingTaskIdx = null; resolveOverlaps(); saveTimeboxes(); } document.removeEventListener('mousemove', tbResize); document.removeEventListener('mouseup', stopTbResize); }
+        window.removeTimebox = function(idx, e) { if(e) e.stopPropagation(); timeboxTasks.splice(idx, 1); saveTimeboxes(); playSound('undo'); }
+        window.completeTimebox = function(idx, e) {
+            if(e) e.stopPropagation(); const tb = timeboxTasks[idx];
+            if (tb && tb.taskId && !completedTasks.includes(tb.taskId)) { completedTasks.push(tb.taskId); }
+            timeboxTasks.splice(idx, 1); saveState(); saveTimeboxes(); playSound('complete');
+        }
+        function saveTimeboxes() { localStorage.setItem('donnaTimeboxTasks', JSON.stringify(timeboxTasks)); renderTimeboxes(); if (fileHandle) syncToDisk(); }
+
+        let currentAlarmTbId = null; let prorrogaTimeout = null;
+        function triggerTimeboxAlarm(tbId) {
+            currentAlarmTbId = tbId; playSound('alarm'); const overlay = document.getElementById('prorroga-modal-overlay'); overlay.style.display = 'flex';
+            clearTimeout(prorrogaTimeout);
+            prorrogaTimeout = setTimeout(() => { if (currentAlarmTbId !== null && overlay.style.display === 'flex') { showNotification("Misión auto-sellada."); resolverProrroga('next'); } }, 120000);
+        }
+        window.resolverProrroga = function(action) {
+            clearTimeout(prorrogaTimeout); document.getElementById('prorroga-modal-overlay').style.display = 'none'; playSound('complete');
+            let tbIdx = timeboxTasks.findIndex(tb => tb.id === currentAlarmTbId);
+            if (action === 'add' && tbIdx !== -1) { timeboxTasks[tbIdx].durationMins += 15; timeboxTasks[tbIdx].notified = false; resolveOverlaps(); saveTimeboxes(); showNotification("15 min añadidos."); } 
+            else if (action === 'next' && tbIdx !== -1) { completeTimebox(tbIdx); }
+            currentAlarmTbId = null;
+        }
+
+        // --- LAUNCHPAD Y DONNA VIBES ---
+        window.toggleLaunchpadModal = function() { renderLaunchpad(); document.getElementById('launchpad-modal-overlay').style.display = 'flex'; }
+        window.hideLaunchpadModal = function() { document.getElementById('launchpad-modal-overlay').style.display = 'none'; document.getElementById('launchpad-grid').classList.remove('hidden'); document.getElementById('launchpad-config').classList.add('hidden'); }
+        window.renderLaunchpad = function() { document.getElementById('launchpad-grid').innerHTML = launchpadLinks.map(link => `<a href="${link.url}" target="_blank" class="flex flex-col items-center justify-center gap-3 p-6 bg-slate-50 hover:bg-emerald-50 rounded-3xl border border-slate-100 hover:border-emerald-300 transition-all group hover:scale-105 shadow-sm text-center"><span class="text-4xl group-hover:scale-110 transition-transform">${link.icon}</span><span class="text-[10px] font-black text-slate-600 group-hover:text-emerald-700 uppercase tracking-widest truncate w-full">${link.title}</span></a>`).join(''); }
+        window.toggleLaunchpadEdit = function() { const grid = document.getElementById('launchpad-grid'); const config = document.getElementById('launchpad-config'); if (grid.classList.contains('hidden')) { grid.classList.remove('hidden'); config.classList.add('hidden'); } else { grid.classList.add('hidden'); config.classList.remove('hidden'); renderLaunchpadEdit(); } }
+        window.renderLaunchpadEdit = function() { document.getElementById('launchpad-edit-list').innerHTML = launchpadLinks.map((link, i) => `<div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex gap-3 items-center shadow-inner"><input type="text" id="lp-icon-${i}" value="${link.icon}" class="w-14 h-12 bg-white text-center rounded-xl border border-slate-200 text-2xl outline-none focus:ring-2 focus:ring-emerald-400"><div class="flex-1 space-y-2"><input type="text" id="lp-title-${i}" value="${link.title}" class="w-full bg-white px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold outline-none focus:ring-2 focus:ring-emerald-400"><input type="text" id="lp-url-${i}" value="${link.url}" class="w-full bg-white px-3 py-2 rounded-xl border border-slate-200 text-[10px] outline-none focus:ring-2 focus:ring-emerald-400"></div></div>`).join(''); }
+        window.saveLaunchpadConfig = function() { launchpadLinks = launchpadLinks.map((_, i) => ({ icon: document.getElementById(`lp-icon-${i}`).value || "🔗", title: document.getElementById(`lp-title-${i}`).value || "Enlace", url: document.getElementById(`lp-url-${i}`).value || "#" })); localStorage.setItem('donnaLaunchpad', JSON.stringify(launchpadLinks)); if (fileHandle) syncToDisk(); toggleLaunchpadEdit(); renderLaunchpad(); showNotification("Cofre Táctico configurado."); }
+
+        function initMusic() {
+            const selector = document.getElementById('mood-selector'); if(!selector) return;
+            selector.innerHTML = `<option value="-1">-- Selecciona tu Mood --</option>` + musicConfig.playlists.map((pl, i) => `<option value="${i}" ${musicConfig.currentMode == i ? 'selected' : ''}>${pl.name}</option>`).join('');
+            if (musicConfig.currentMode !== -1) { injectSpotify(musicConfig.currentMode); updateMusicIcon(true); } else { updateMusicIcon(false); }
+        }
+        function updateMusicIcon(isActive) { const iconWrap = document.getElementById('sidebar-spotify-icon'); if (iconWrap) isActive ? iconWrap.classList.add('music-active-icon') : iconWrap.classList.remove('music-active-icon'); }
+        window.toggleMusicPanel = function() { document.getElementById('music-panel').classList.toggle('active'); }
+        window.toggleMusicSettings = function() { const panel = document.getElementById('music-settings'); panel.classList.toggle('hidden'); if (!panel.classList.contains('hidden')) renderMusicSettings(); }
+        window.renderMusicSettings = function() { document.getElementById('settings-list').innerHTML = musicConfig.playlists.map((pl, i) => `<div class="bg-white/60 p-4 rounded-2xl border border-emerald-100 mb-2"><input type="text" value="${pl.name}" class="w-full bg-transparent font-bold text-xs mb-2 outline-none border-b border-emerald-200 focus:border-emerald-500 text-emerald-900" id="set-name-${i}"><input type="text" value="${pl.url}" class="w-full bg-transparent text-[10px] text-slate-500 outline-none truncate" id="set-url-${i}"></div>`).join(''); }
+        window.saveMusicSettings = function() { musicConfig.playlists = musicConfig.playlists.map((pl, i) => ({ name: document.getElementById(`set-name-${i}`).value, url: document.getElementById(`set-url-${i}`).value })); saveState(); initMusic(); toggleMusicSettings(); showNotification("Ajustes musicales actualizados."); }
+        window.changeMusicMood = function(idx) { if (idx == -1) { killMusic(); return; } musicConfig.currentMode = idx; saveState(); injectSpotify(idx); updateMusicIcon(true); }
+        window.injectSpotify = function(idx) {
+            const pl = musicConfig.playlists[idx]; const container = document.getElementById('spotify-container'); let embedUrl = pl.url.replace("open.spotify.com/", "open.spotify.com/embed/").split('?')[0];
+            container.innerHTML = `<iframe src="${embedUrl}?utm_source=generator&theme=0" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" class="rounded-[2rem]"></iframe>`;
+        }
+        window.killMusic = function() {
+            musicConfig.currentMode = -1; saveState(); const selector = document.getElementById('mood-selector'); if (selector) selector.value = -1;
+            document.getElementById('spotify-container').innerHTML = `<span class="text-slate-400 text-[10px] uppercase tracking-widest font-bold italic p-10 text-center block">Silencio absoluto.<br><br>Donna prioriza la latencia cero.</span>`;
+            updateMusicIcon(false);
+        }
+
+        // --- POST-IT (NOTAS) ---
+        window.togglePostit = function() { const p = document.getElementById('donna-postit'); postitData.visible = !postitData.visible; if (postitData.visible) { p.classList.remove('hidden'); if (postitData.x !== null && postitData.y !== null) { p.style.left = postitData.x + 'px'; p.style.top = postitData.y + 'px'; p.style.right = 'auto'; } } else { p.classList.add('hidden'); } savePostit(); }
+        window.formatText = function(command) { document.execCommand(command, false, null); document.getElementById('postit-content').focus(); postitData.text = document.getElementById('postit-content').innerHTML; savePostit(); }
+        function savePostit() { localStorage.setItem('donnaPostit', JSON.stringify(postitData)); }
+        function initPostitDrag() {
+            const postit = document.getElementById('donna-postit'); const header = document.getElementById('postit-header'); if (!postit || !header) return;
+            let isDraggingPostit = false, startX, startY, initialX, initialY;
+            header.addEventListener('mousedown', (e) => { isDraggingPostit = true; startX = e.clientX; startY = e.clientY; initialX = postit.offsetLeft; initialY = postit.offsetTop; document.addEventListener('mousemove', drag); document.addEventListener('mouseup', stopDrag); });
+            function drag(e) { if (!isDraggingPostit) return; const dx = e.clientX - startX; const dy = e.clientY - startY; postit.style.left = `${initialX + dx}px`; postit.style.top = `${initialY + dy}px`; postit.style.right = 'auto'; }
+            function stopDrag() { isDraggingPostit = false; document.removeEventListener('mousemove', drag); document.removeEventListener('mouseup', stopDrag); postitData.x = postit.offsetLeft; postitData.y = postit.offsetTop; savePostit(); }
+        }
+        function initPostitResize() {
+            const postit = document.getElementById('donna-postit'); const resizer = document.getElementById('postit-resizer'); if (!postit || !resizer) return;
+            let isResizing = false;
+            resizer.addEventListener('mousedown', (e) => { isResizing = true; document.addEventListener('mousemove', handleResize); document.addEventListener('mouseup', stopResize); e.stopPropagation(); e.preventDefault(); });
+            function handleResize(e) { if (!isResizing) return; const rect = postit.getBoundingClientRect(); const newWidth = e.clientX - rect.left; const newHeight = e.clientY - rect.top; if (newWidth > 220) postit.style.width = newWidth + 'px'; if (newHeight > 200) postit.style.height = newHeight + 'px'; }
+            function stopResize() { if (!isResizing) return; isResizing = false; document.removeEventListener('mousemove', handleResize); document.removeEventListener('mouseup', stopResize); postitData.w = parseInt(postit.style.width); postitData.h = parseInt(postit.style.height); savePostit(); }
+        }
+
+        // --- MODO FOCO ---
+        window.enterFocusMode = function(id, e) { if (e) e.stopPropagation(); playSound('portal'); document.body.classList.add('focus-active'); showTaskModal(id); showNotification("Túnel de enfoque activado."); }
+        window.exitFocusMode = function() { document.body.classList.remove('focus-active'); hideTaskModal(); showNotification("Saliendo del Túnel."); }
+
+        function saveState() { localStorage.setItem('eonesiaSections', JSON.stringify(sections)); localStorage.setItem('completedTasks', JSON.stringify(completedTasks)); localStorage.setItem('priorityOrder', JSON.stringify(priorityOrder)); localStorage.setItem('eonesiaMusic', JSON.stringify(musicConfig)); updateProgress(); }
+        function findTaskById(id) { const taskId = parseFloat(id); for (let s of sections) { if (s.tasks) { const t = s.tasks.find(task => parseFloat(task.id) === taskId); if (t) return { ...t, sectionIcon: s.icon, sectionTitle: s.title }; } } return null; }
+        function showNotification(msg, title = "Administrador") { const box = document.getElementById('notification-box'); const iconContainer = document.getElementById('noti-icon'); if (!box || !iconContainer) return; document.getElementById('noti-msg').innerText = msg; document.getElementById('noti-title').innerText = title; iconContainer.innerHTML = `<img src="${DONNA_IMG}" class="w-full h-full object-cover">`; box.classList.add('active'); setTimeout(() => { box.classList.remove('active'); }, 4000); }
+
+        const DONNA_QUOTES = { urgent: ["El reloj avanza. Ejecuta.", "Prioridad máxima. No falles."], complex: ["Divide y vencerás. Tacha una subtarea ahora mismo."], important: ["Si cierras esto, el día está ganado."], chill: ["Un trámite. Ejecuta y a por lo siguiente."] };
+        window.regenerateDonnaAdvice = function(taskId) { const t = findTaskById(taskId); if (!t) return; updateDonnaAdvice(t); }
+        function updateDonnaAdvice(t) { const textEl = document.getElementById('donna-advice-text'); if (!textEl) return; let category = "chill"; if (t.stars === 3) category = "important"; else if (t.dueDate && new Date(t.dueDate) < new Date()) category = "urgent"; else if (t.subtasks && t.subtasks.length > 2) category = "complex"; const msg = DONNA_QUOTES[category][Math.floor(Math.random() * DONNA_QUOTES[category].length)]; textEl.style.opacity = 0; setTimeout(() => { textEl.innerText = `"${msg}"`; textEl.style.opacity = 1; }, 200); }
+
+        function renderAll() { renderPriorityHub(); renderSections(); updateProgress(); }
+
+        function updateProgress() {
+            const total = sections.reduce((acc, s) => acc + (s.tasks ? s.tasks.length : 0), 0); const globalP = total === 0 ? 0 : Math.round((completedTasks.length / total) * 100);
+            const dailyPriorityTasks = priorityOrder.length; const completedPriorityTasks = priorityOrder.filter(id => completedTasks.includes(id)).length; const dailyP = dailyPriorityTasks === 0 ? 0 : Math.round((completedPriorityTasks / dailyPriorityTasks) * 100);
+            document.getElementById('progress-bar-top').style.width = `${globalP}%`; document.getElementById('progress-text-top').innerText = `${globalP}%`;
+            document.getElementById('progress-bar-bottom').style.width = `${dailyP}%`; document.getElementById('progress-text-bottom').innerText = `${dailyP}%`; updateRadar();
+        }
+
+        function getIconHtml(icon, sizeClass = "w-10 h-10", isHeader = true) {
+            if (CUSTOM_LOGOS[icon]) { const isLogo = ['EXCEL', 'EONESIA', 'ROBOKIDS', 'INCYDE', 'HYGGE', 'QURTUBA'].includes(icon); const imgClass = isLogo ? 'object-contain p-1 bg-white' : 'object-cover'; return `<img src="${CUSTOM_LOGOS[icon]}" class="${sizeClass} ${isHeader ? "rounded-xl" : "rounded-full"} ${imgClass} border border-white/50 shadow-sm flex-shrink-0">`; }
+            return `<div class="${sizeClass} rounded-xl flex items-center justify-center text-white text-xl flex-shrink-0">${icon}</div>`;
+        }
+
+        function getDateBadge(d) { if (!d) return ""; const due = new Date(d); const now = new Date(); now.setHours(0, 0, 0, 0); const diff = Math.ceil((due - now) / 86400000); const badgeClass = diff <= 2 ? 'date-red' : (diff <= 7 ? 'date-yellow' : 'date-green'); return `<span class="date-badge ${badgeClass} ml-1">${due.toLocaleDateString('es-ES', {day: '2-digit', month: 'short'})}</span>`; }
+        function getAssetIndicators(t) { let ind = (t.notes ? '📝' : '') + (t.links && t.links.length ? '🔗' : ''); if (t.subtasks && t.subtasks.length > 0) { const comp = t.subtasks.filter(s => s.completed).length; ind += `<span class="sub-task-progress">${comp}/${t.subtasks.length}</span>`; } return ind; }
+        function renderStars(id, stars, brandIcon = '') { const theme = BRAND_THEMES[brandIcon]; let h = '<div class="star-rating">'; const iconChar = (theme && theme.starIcon) ? theme.starIcon : '★'; const isEmoji = iconChar !== '★' && iconChar !== '♥'; for (let i = 1; i <= 3; i++) { let customClass = isEmoji ? 'opacity-30 grayscale' : ''; if (i <= (stars || 0)) { if (stars === 3 && theme && theme.starColors) { customClass = theme.starColors[i - 1]; } else { customClass = 'active ' + (isEmoji ? '!opacity-100 !grayscale-0' : ''); } } h += `<span class="star-icon ${customClass}" onclick="setStars(${id}, ${i}, event)">${iconChar}</span>`; } h += '</div>'; return h; }
+
+        // --- PRIORIDADES GRID (MEJORA) ---
+        function renderPriorityHub() {
+            const podiumContainer = document.getElementById('priority-podium');
+            const empty = document.getElementById('priority-empty-msg');
+            if (!podiumContainer) return;
+            podiumContainer.innerHTML = '';
+            
+            let active = (priorityOrder || []).map(id => findTaskById(id)).filter(t => t && !completedTasks.includes(t.id));
+            active.sort((a, b) => (b.stars || 0) - (a.stars || 0));
+            
+            if (active.length === 0) {
+                empty.classList.remove('hidden'); podiumContainer.classList.add('hidden');
+            } else {
+                empty.classList.add('hidden'); podiumContainer.classList.remove('hidden');
+                active.forEach((t, i) => {
+                    const div = document.createElement('div');
+                    div.className = `glass-panel rounded-3xl p-5 flex flex-col group relative overflow-hidden shadow-sm border border-slate-100 hover:border-emerald-300 transition-all bg-white hover:-translate-y-1`;
+                    div.draggable = true; div.ondragstart = (e) => handleDragStart(e, t.id); div.ondragend = handleDragEnd; div.onclick = () => showTaskModal(t.id);
+
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                ${getIconHtml(t.sectionIcon, "w-10 h-10", false)}
+                                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest truncate max-w-[120px]">${t.sectionTitle}</span>
+                            </div>
+                            <button onclick="removeFromPriority(${t.id}, event)" class="text-slate-300 hover:text-rose-500 hover:scale-110 transition-transform">✕</button>
+                        </div>
+                        <h4 class="font-bold text-slate-800 text-sm leading-snug mb-3 flex-1 line-clamp-3">${t.text}</h4>
+                        <div class="flex flex-wrap gap-2 mb-5">
+                            ${getAssetIndicators(t)} ${getDateBadge(t.dueDate)}
+                        </div>
+                        <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-auto">
+                            ${renderStars(t.id, t.stars, t.sectionIcon)}
+                            <div class="flex items-center gap-4">
+                                <button onclick="enterFocusMode(${t.id}, event)" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-emerald-500 transition-all text-[10px] font-black uppercase tracking-wider flex items-center gap-1"><span class="text-emerald-500">🎯</span> Foco</button>
+                                <input type="checkbox" class="checkbox-eonesia scale-110" onchange="toggleTask(${t.id}, event)" onclick="event.stopPropagation()">
+                            </div>
+                        </div>
+                    `;
+                    podiumContainer.appendChild(div);
+                });
+            }
+        }
+
+        window.removeFromPriority = function(id, e) { if (e) e.stopPropagation(); priorityOrder = priorityOrder.filter(p => p !== id); saveState(); renderPriorityHub(); playSound('undo'); }
+        window.moveToPriority = function(id, e) { if (e) e.stopPropagation(); if (!priorityOrder.includes(id)) { priorityOrder.push(id); saveState(); renderPriorityHub(); playSound('portal'); showNotification("Misión inyectada."); } const radarPanel = document.getElementById('radar-panel'); if (radarPanel) radarPanel.style.display = 'none'; }
+
+        function renderSections() { 
+            const container = document.getElementById('task-container'); if (!container) return; 
+            container.innerHTML = ''; const sorted = [...sections].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)); 
+            sorted.forEach(s => { const wrapper = document.createElement('div'); wrapper.id = `section-container-${s.id}`; wrapper.ondragover = handleDragOver; wrapper.ondrop = (e) => handleDropToSpecificSection(e, s.id); container.appendChild(wrapper); renderSingleSection(s.id); }); 
+        }
+
+        function renderSingleSection(id) {
+            const container = document.getElementById(`section-container-${id}`); const section = sections.find(sec => sec.id === id); if (!container || !section) return;
+            const theme = BRAND_THEMES[section.icon] || { panel: '', title: 'text-slate-800', subtitle: 'text-slate-600', taskHover: 'hover:bg-white/50', taskText: 'text-slate-800', iconClass: '', input: 'bg-white/30 text-slate-900 focus:bg-white/70' };
+            container.className = `glass-panel rounded-[2rem] p-6 relative group transition-all duration-500 ${section.pinned ? 'ring-2 ring-emerald-400/50' : ''} ${theme.panel}`;
+            
+            const tasks = section.tasks || []; tasks.sort((a, b) => (b.stars || 0) - (a.stars || 0));
+            const activeTasks = tasks.filter(t => !completedTasks.includes(t.id));
+            const filtered = searchTerm ? activeTasks.filter(t => t.text.toLowerCase().includes(searchTerm)) : activeTasks;
+            
+            let htmlTasks = filtered.map(t => `
+                <div class="task-item group/item flex items-center justify-between gap-3 p-3 rounded-xl transition-all ${theme.taskHover}" draggable="true" ondragstart="handleDragStart(event, ${t.id})" ondragend="handleDragEnd(event)" onclick="showTaskModal(${t.id})">
+                    <div class="flex items-center gap-3 flex-1 overflow-hidden">
+                        <input type="checkbox" class="checkbox-eonesia" onchange="toggleTask(${t.id}, event)" onclick="event.stopPropagation()">
+                        <div class="truncate"><span class="task-label font-bold text-xs ${theme.taskText}">${t.text}</span> ${getAssetIndicators(t)} ${getDateBadge(t.dueDate)}</div>
+                    </div>
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <button onclick="moveToPriority(${t.id}, event)" class="opacity-0 group-hover/item:opacity-100 action-icon hover:scale-125 ${theme.iconClass}">⚡</button>
+                        <button onclick="deleteTaskPermanent(${t.id}, event)" class="opacity-0 group-hover/item:opacity-100 action-icon trash ${theme.iconClass}">${TRASH_SVG}</button>
+                        ${renderStars(t.id, t.stars, section.icon)}
+                    </div>
+                </div>`).join('');
+            
+            let iconBox = getIconHtml(section.icon);
+            container.innerHTML = `
+                <div class="flex items-center justify-between mb-4 gap-2">
+                    <div class="flex items-center gap-3 overflow-hidden cursor-pointer" onclick="showRenameModal('${section.id}')">
+                        ${iconBox}
+                        <div class="truncate"><h2 class="text-sm font-bold uppercase tracking-tight truncate ${theme.title}">${section.title}</h2><span class="text-[8px] font-bold uppercase tracking-widest ${theme.subtitle}">${activeTasks.length} PENDIENTES</span></div>
+                    </div>
+                    <div class="flex gap-1 flex-shrink-0">
+                        <button onclick="togglePin('${section.id}')" class="action-icon ${section.pinned ? 'pin-active' : 'opacity-50'} hover:opacity-100 ${theme.iconClass}">${PIN_SVG}</button>
+                        <button onclick="removeSection('${section.id}')" class="action-icon trash opacity-50 hover:opacity-100 ${theme.iconClass}">${TRASH_SVG}</button>
+                    </div>
+                </div>
+                <div class="space-y-1">${htmlTasks}</div>
+                <input type="text" id="in-${section.id}" placeholder="Nueva misión..." onkeypress="if(event.key==='Enter')addTask('${section.id}')" class="w-full p-2 rounded-lg text-[10px] mt-3 border-none italic font-bold outline-none transition-colors ${theme.input}">
+            `;
+        }
+
+        window.addTask = (sId) => { const inputEl = document.getElementById(`in-${sId}`); if (!inputEl.value.trim()) return; const section = sections.find(sec => sec.id === sId); if (!section.tasks) section.tasks = []; section.tasks.push({ id: generateTaskId(), text: inputEl.value.trim(), stars: 0, notes: "", links: [], dueDate: "", subtasks: [] }); inputEl.value = ''; saveState(); renderSingleSection(sId); };
+        window.addNewSection = () => { const titleInput = document.getElementById('new-section-title').value; if (!titleInput.trim()) return; const gradients = ["from-emerald-400 to-emerald-600", "from-teal-400 to-emerald-500", "from-green-400 to-teal-500"]; sections.push({ id: generateSecId(), title: titleInput, icon: selectedEmoji, pinned: false, gradient: gradients[Math.floor(Math.random() * gradients.length)], tasks: [] }); document.getElementById('new-section-title').value = ''; saveState(); renderSections(); };
+
+        window.toggleTask = function(id, e) {
+            if (e) e.stopPropagation();
+            if (!completedTasks.includes(id)) { completedTasks.push(id); playSound('complete'); } else { completedTasks = completedTasks.filter(t => t !== id); playSound('undo'); }
+            saveState(); renderAll();
+        }
+
+        window.deleteTaskPermanent = function(id, e) { if (e) e.stopPropagation(); customConfirm("¿Eliminar definitivamente?", () => { sections.forEach(s => { if (s.tasks) s.tasks = s.tasks.filter(t => parseFloat(t.id) !== parseFloat(id)); }); priorityOrder = priorityOrder.filter(p => parseFloat(p) !== parseFloat(id)); completedTasks = completedTasks.filter(c => parseFloat(c) !== parseFloat(id)); saveState(); renderAll(); }); }
+        window.removeSection = function(id) { customConfirm("¿Desmantelar sector?", () => { sections = sections.filter(s => s.id !== id); saveState(); renderSections(); }); };
+        window.togglePin = function(id) { sections.forEach(s => { if (s.id === id) s.pinned = !s.pinned; }); saveState(); renderSections(); }
+        window.setStars = function(id, count, e) { if (e) e.stopPropagation(); sections.forEach(s => { if (s.tasks) { const t = s.tasks.find(task => task.id === id); if (t) t.stars = (t.stars === count) ? 0 : count; } }); saveState(); renderAll(); }
+
+        window.clearCompletedTasksManual = function() { 
+            if (completedTasks.length === 0) return; 
+            customConfirm("¿Purgar historial en Storage?", () => { sections.forEach(s => { if (s.tasks) s.tasks = s.tasks.filter(t => !completedTasks.includes(t.id)); }); completedTasks = []; saveState(); renderAll(); showNotification("Storage purgado."); const reportModal = document.getElementById('report-modal-overlay'); if (reportModal) reportModal.style.display = 'none'; }); 
+        }
+
+        function handleDragStart(e, id) { e.dataTransfer.setData('taskId', id); e.target.classList.add('dragging'); isDragging = true; }
+        function handleDragEnd(e) { e.target.classList.remove('dragging'); isDragging = false; document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target')); const ghost = document.getElementById('tb-ghost'); if(ghost) ghost.style.display = 'none'; }
+        function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drop-target'); const m = 180; const s = 12; if (e.clientY < m) window.scrollBy(0, -s); if (e.clientY > window.innerHeight - m) window.scrollBy(0, s); }
+        function handleDropToPriority(e) { e.preventDefault(); moveToPriority(parseFloat(e.dataTransfer.getData('taskId')), e); }
+        function handleDropToSpecificSection(e, targetId) { 
+            e.preventDefault(); const taskId = parseFloat(e.dataTransfer.getData('taskId')); let movedTask = null; 
+            sections.forEach(s => { if (s.tasks) { const idx = s.tasks.findIndex(t => parseFloat(t.id) === taskId); if (idx !== -1) movedTask = s.tasks.splice(idx, 1)[0]; } });
+            if (movedTask) { const target = sections.find(s => s.id === targetId); if (target) { if (!target.tasks) target.tasks = []; target.tasks.push(movedTask); } }
+            saveState(); renderAll(); 
+        }
+
+        window.showTaskModal = function(id) { 
+            const t = findTaskById(id); if (!t) return; currentEditingTaskId = id; 
+            document.getElementById('modal-title-display').innerText = t.text; document.getElementById('modal-task-title').value = t.text; document.getElementById('modal-task-notes').value = t.notes || ""; document.getElementById('modal-task-date').value = t.dueDate || "";
+            
+            const focusIcon = document.getElementById('focus-section-icon'); const focusTitle = document.getElementById('focus-section-title'); const focusHeaderPanel = document.getElementById('focus-header-panel'); const focusTaskDisplay = document.getElementById('focus-task-title-display');
+            if(focusIcon && focusTitle && focusHeaderPanel) {
+                focusIcon.innerHTML = getIconHtml(t.sectionIcon, "w-14 h-14", true); const theme = BRAND_THEMES[t.sectionIcon];
+                if (theme) { focusHeaderPanel.className = "focus-mode-only w-full bg-slate-900 text-white p-6 md:p-8 rounded-3xl mb-8 justify-between items-center transition-all shadow-2xl " + theme.panel.replace('!border-2', 'border-2'); focusTitle.className = `font-black tracking-widest uppercase text-[10px] mb-1 ${theme.subtitle.replace('!', '')}`; focusTitle.innerText = `Túnel: ${t.sectionTitle}`; } 
+                else { focusHeaderPanel.className = "focus-mode-only w-full bg-slate-900 text-white p-6 md:p-8 rounded-3xl mb-8 justify-between items-center shadow-2xl border-2 border-slate-800 transition-all"; focusTitle.className = `text-emerald-400 font-black tracking-widest uppercase text-[10px] mb-1`; focusTitle.innerText = `Túnel de Inmersión`; }
+            }
+            if (focusTaskDisplay) focusTaskDisplay.innerText = t.text;
+            renderLinkTags(t.links || []); renderSubtasks(t.subtasks || []); updateDonnaAdvice(t); document.getElementById('task-modal-overlay').style.display = 'flex';
+        }
+
+        window.hideTaskModal = function() { document.getElementById('task-modal-overlay').style.display = 'none'; currentEditingTaskId = null; if(document.body.classList.contains('focus-active')) exitFocusMode(); }
+        window.closeTaskModal = function(e) { if (e.target.id === 'task-modal-overlay') hideTaskModal(); }
+        window.autoSave = function() { 
+            if (!currentEditingTaskId) return; const t = findTaskById(currentEditingTaskId); 
+            if (t) { t.text = document.getElementById('modal-task-title').value; t.notes = document.getElementById('modal-task-notes').value; t.dueDate = document.getElementById('modal-task-date').value; if (document.getElementById('focus-task-title-display')) document.getElementById('focus-task-title-display').innerText = t.text; } 
+            sections.forEach(s => { if (s.tasks) { const idx = s.tasks.findIndex(task => parseFloat(task.id) === currentEditingTaskId); if (idx !== -1) { s.tasks[idx].text = t.text; s.tasks[idx].notes = t.notes; s.tasks[idx].dueDate = t.dueDate; } } });
+            saveState(); renderAll(); 
+        }
+
+        function renderSubtasks(subs) { const list = document.getElementById('subtasks-list'); if (!list) return; list.innerHTML = (subs || []).map((s, i) => `<div class="flex items-center gap-3 bg-white p-2 rounded-lg border border-emerald-100 shadow-sm transition-colors"><input type="checkbox" class="sub-checkbox" ${s.completed ? 'checked' : ''} onchange="toggleSubtask(${i})"><span class="text-[11px] font-bold flex-1 ${s.completed ? 'line-through text-slate-400' : 'text-slate-800'}">${s.text}</span><button onclick="removeSubtask(${i})" class="text-slate-400 hover:text-rose-500">✕</button></div>`).join(''); if ((subs || []).length === 0) list.innerHTML = '<p class="text-[10px] text-emerald-700 italic text-center py-4 font-bold">Checklist vacío.</p>'; }
+        window.addSubtask = function() { const input = document.getElementById('new-subtask-input'); const text = input.value.trim(); if (!text || !currentEditingTaskId) return; sections.forEach(s => { const t = s.tasks.find(task => parseFloat(task.id) === currentEditingTaskId); if (t) { if (!t.subtasks) t.subtasks = []; t.subtasks.push({ text, completed: false }); renderSubtasks(t.subtasks); } }); input.value = ""; autoSave(); }
+        window.toggleSubtask = function(idx) { sections.forEach(s => { const t = s.tasks.find(task => parseFloat(task.id) === currentEditingTaskId); if (t && t.subtasks) { t.subtasks[idx].completed = !t.subtasks[idx].completed; renderSubtasks(t.subtasks); playSound('complete'); } }); autoSave(); }
+        window.removeSubtask = function(idx) { sections.forEach(s => { const t = s.tasks.find(task => parseFloat(task.id) === currentEditingTaskId); if (t && t.subtasks) { t.subtasks.splice(idx, 1); renderSubtasks(t.subtasks); } }); autoSave(); }
+        function renderLinkTags(links) { const container = document.getElementById('modal-links-container'); if (!container) return; container.innerHTML = (links || []).map((l, i) => `<div class="bg-emerald-100 text-emerald-900 p-2 rounded-lg text-[9px] font-black flex gap-2 border border-emerald-200"><a href="${l}" target="_blank" class="truncate max-w-[150px] hover:underline">${l}</a><button onclick="removeLinkTag(${i})" class="text-red-600 font-bold hover:scale-125">×</button></div>`).join(''); }
+        window.addLinkTag = function() { const inputEl = document.getElementById('modal-task-link-input'); let val = inputEl.value.trim(); if (!val || !currentEditingTaskId) return; if (!/^https?:\/\//i.test(val)) val = 'https://' + val; sections.forEach(s => { const t = s.tasks.find(task => parseFloat(task.id) === currentEditingTaskId); if (t) { if (!t.links) t.links = []; t.links.push(val); renderLinkTags(t.links); } }); inputEl.value = ""; autoSave(); }
+        window.removeLinkTag = function(idx) { sections.forEach(s => { const t = s.tasks.find(task => parseFloat(task.id) === currentEditingTaskId); if (t && t.links) { t.links.splice(idx, 1); renderLinkTags(t.links); } }); autoSave(); }
+
+        window.showRenameModal = function(id) { const s = sections.find(sec => sec.id === id); if (!s) return; currentRenamingSectionId = id; currentEditSectionIcon = s.icon; document.getElementById('rename-section-input').value = s.title; const displayEl = document.getElementById('edit-selected-icon-display'); if (CUSTOM_LOGOS[s.icon]) { const isLogo = ['EXCEL', 'EONESIA', 'ROBOKIDS', 'INCYDE', 'HYGGE', 'QURTUBA'].includes(s.icon); const imgClass = isLogo ? 'object-contain p-1 bg-white' : 'object-cover'; displayEl.innerHTML = `<img src="${CUSTOM_LOGOS[s.icon]}" class="w-full h-full rounded-lg ${imgClass}">`; } else { displayEl.innerHTML = s.icon; } document.getElementById('rename-modal-overlay').style.display = 'flex'; }
+        window.hideRenameModal = function() { document.getElementById('rename-modal-overlay').style.display = 'none'; currentRenamingSectionId = null; const editGrid = document.getElementById('edit-icon-grid'); if (editGrid) editGrid.classList.add('hidden'); }
+        window.confirmRename = function() { const newName = document.getElementById('rename-section-input').value.trim(); if (newName && currentRenamingSectionId) { sections.forEach(s => { if (s.id === currentRenamingSectionId) { s.title = newName; s.icon = currentEditSectionIcon; } }); saveState(); renderAll(); hideRenameModal(); } }
+
+        window.showDonnaModal = function() { document.getElementById('donna-modal-overlay').style.display = 'flex'; playSound('portal'); }
+        window.hideDonnaModal = function() { document.getElementById('donna-modal-overlay').style.display = 'none'; }
+        window.closeDonnaModal = function(e) { if (e.target.id === 'donna-modal-overlay') hideDonnaModal(); }
+
+        window.showAboutModal = function() { document.getElementById('about-modal-overlay').style.display = 'flex'; playSound('portal'); }
+        window.hideAboutModal = function() { document.getElementById('about-modal-overlay').style.display = 'none'; }
+        window.closeAboutModal = function(e) { if (e.target.id === 'about-modal-overlay') hideAboutModal(); }
+        
+        window.exportAllToJSON = function() { const data = { sections, completedTasks, priorityOrder, launchpadLinks, timeboxTasks }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Donna_Master_Backup.json`; a.click(); }
+
+        window.processDonnaImport = function() { 
+            let input = document.getElementById('donna-json-input').value.trim(); if (!input) return; input = input.replace(/```json|```/g, "").trim(); 
+            try { 
+                const d = JSON.parse(input); 
+                if (d.sections) { sections = d.sections; completedTasks = d.completedTasks || []; priorityOrder = d.priorityOrder || []; if(d.launchpadLinks) launchpadLinks = d.launchpadLinks; if(d.timeboxTasks) timeboxTasks = d.timeboxTasks; saveState(); renderAll(); renderTimeboxes(); hideDonnaModal(); showNotification("Protocolo completado."); } 
+                else if (Array.isArray(d)) { d.forEach(item => { let sec = sections.find(s => s.title.toLowerCase() === item.sectionTitle.trim().toLowerCase()); if (!sec) { sec = { id: generateSecId(), title: item.sectionTitle, icon: item.icon || "🚀", pinned: false, gradient: "from-emerald-400 to-emerald-600", tasks: [] }; sections.push(sec); } if (!sec.tasks.some(t => t.text.toLowerCase() === item.task.text.toLowerCase())) { const nt = { id: generateTaskId(), text: item.task.text, stars: item.task.stars || 0, notes: item.task.notes || "", links: item.task.links || [], dueDate: item.task.dueDate || "", subtasks: item.task.subtasks || [] }; sec.tasks.push(nt); if (nt.stars === 3 && !priorityOrder.includes(nt.id)) priorityOrder.push(nt.id); } }); saveState(); renderAll(); hideDonnaModal(); showNotification("Misiones inyectadas."); }
+            } catch (e) { showNotification("Fallo en la matriz."); } 
+        }
+
+        window.handleSearch = () => { searchTerm = document.getElementById('global-search').value.toLowerCase(); renderAll(); };
+        
+        function updateRadar() { const now = new Date(); now.setHours(0,0,0,0); let count = 0; sections.forEach(s => { (s.tasks || []).forEach(t => { if (!completedTasks.includes(t.id) && t.dueDate) { if (Math.ceil((new Date(t.dueDate) - now) / 86400000) <= 7) count++; } }); }); const badge = document.getElementById('radar-count-badge'); if (badge) { badge.innerText = count; badge.classList.toggle('hidden', count === 0); } }
+        window.toggleRadar = function() { const panel = document.getElementById('radar-panel'); if (panel) { panel.style.display = (panel.style.display === 'block') ? 'none' : 'block'; if (panel.style.display === 'block') renderRadar(); } }
+        function renderRadar() { const list = document.getElementById('radar-list'); const now = new Date(); now.setHours(0,0,0,0); let urgent = []; sections.forEach(s => { (s.tasks || []).forEach(t => { if (!completedTasks.includes(t.id) && t.dueDate) { const diff = Math.ceil((new Date(t.dueDate) - now) / 86400000); if (diff <= 7) urgent.push({ ...t, diff }); } }); }); urgent.sort((a,b) => a.diff - b.diff); if (urgent.length === 0) { list.innerHTML = '<p class="text-[10px] italic text-center py-4">Radar limpio.</p>'; } else { list.innerHTML = urgent.map(t => `<div class="flex items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-100 mb-2"><div class="flex items-center gap-2 overflow-hidden flex-1"><div class="w-2 h-2 rounded-full ${t.diff <= 2 ? 'bg-red-500' : 'bg-amber-400'} animate-pulse flex-shrink-0"></div><div class="truncate font-bold text-[11px] text-slate-700">${t.text}</div></div><button onclick="moveToPriority(${t.id}, event)" class="action-icon text-emerald-500 flex-shrink-0">⚡</button></div>`).join(''); } }
+
+        window.generateAndPrintReport = function() { 
+            if (fileHandle) syncToDisk(); 
+            const now = new Date(); document.getElementById('report-date').innerText = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }); document.getElementById('report-time').innerText = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            const completedToday = []; sections.forEach(s => { const sComp = (s.tasks || []).filter(t => completedTasks.includes(t.id)); if (sComp.length > 0) completedToday.push({ title: s.title, icon: s.icon, tasks: sComp }); });
+            const totalComp = completedTasks.length; let phrases = ["Rendimiento quirúrgico.", "Carga masiva consolidada.", "Eficiencia táctica lograda.", "Donna aprueba su jornada."]; if (totalComp < 3) phrases = ["Productividad bajo mínimos.", "Sesión de baja intensidad.", "Misiones escasas hoy."]; document.getElementById('donna-random-phrase').innerText = `"${phrases[Math.floor(Math.random() * phrases.length)]}"`;
+            const totalDaily = priorityOrder.length; const compDaily = priorityOrder.filter(id => completedTasks.includes(id)).length; const percDaily = totalDaily === 0 ? 0 : Math.round((compDaily / totalDaily) * 100);
+            const leftovers = (priorityOrder || []).map(id => findTaskById(id)).filter(t => t && !completedTasks.includes(t.id));
+            const radarUrgent = []; sections.forEach(s => { (s.tasks || []).forEach(t => { if (!completedTasks.includes(t.id) && t.dueDate && !priorityOrder.includes(t.id)) { const diff = Math.ceil((new Date(t.dueDate) - now) / 86400000); if(diff >= 0 && diff <= 3) radarUrgent.push({ ...t, diff }); } }); }); radarUrgent.sort((a,b) => a.diff - b.diff);
+            
+            let htmlComp = completedToday.length === 0 ? '<p class="text-sm font-black italic">Sin misiones completadas.</p>' : completedToday.map(s => `<div class="mb-5"><div class="text-xs font-black text-slate-800 uppercase mb-3 flex items-center gap-2">${getIconHtml(s.icon, "w-6 h-6", false)} ${s.title}</div><ul class="pl-0 m-0 space-y-2">${s.tasks.map(t => `<li class="text-sm font-bold text-slate-600 flex items-start gap-3"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 flex-shrink-0"></span> ${t.text}</li>`).join('')}</ul></div>`).join('');
+            const tomorrowItems = [...leftovers.map(t => ({...t, type:'REMANENTE'})), ...radarUrgent.map(t => ({...t, type:'URGENTE'}))];
+            let htmlTom = tomorrowItems.length === 0 ? '<p class="text-sm font-black italic">Tablero despejado.</p>' : tomorrowItems.slice(0, 8).map(t => `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-2 shadow-sm"><span class="text-xs font-bold text-slate-700 truncate flex-1">${t.text}</span><span class="${t.type === 'REMANENTE' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'} text-[9px] font-black px-3 py-1 rounded-lg uppercase tracking-wider ml-3">${t.type}</span></div>`).join('');
+            
+            document.getElementById('report-completed-list').innerHTML = htmlComp;
+            document.getElementById('report-priority-stats').innerHTML = `<div class="bg-gradient-to-br from-emerald-600 to-teal-800 p-8 rounded-[2.5rem] text-white text-center shadow-xl relative overflow-hidden"><div class="absolute -right-4 -top-4 opacity-10 text-9xl">⚡</div><div class="text-6xl font-black mb-2 relative z-10">${percDaily}%</div><div class="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 relative z-10">Consolidación Diaria</div></div>`;
+            document.getElementById('report-tomorrow-priorities').innerHTML = htmlTom;
+            document.getElementById('report-modal-overlay').style.display = 'flex'; 
+        };
+
+        window.customConfirm = function(msg, onConfirm) { const overlay = document.getElementById('confirm-modal-overlay'); document.getElementById('confirm-title').innerText = msg; overlay.style.display = 'flex'; document.getElementById('confirm-yes').onclick = () => { overlay.style.display = 'none'; onConfirm(); }; document.getElementById('confirm-no').onclick = () => { overlay.style.display = 'none'; }; }
+
+        function initIconGrid() { 
+            const grid = document.getElementById('icon-grid'); const editGrid = document.getElementById('edit-icon-grid');
+            let h = `<div class="icon-section-label">Donna & Equipo</div>`; for (let [k, v] of Object.entries(CUSTOM_LOGOS)) { const isLogo = ['EXCEL', 'EONESIA', 'ROBOKIDS', 'INCYDE', 'HYGGE', 'QURTUBA'].includes(k); const imgClass = isLogo ? 'object-contain p-1 bg-white' : 'object-cover'; h += `<div class="icon-option" onclick="selectIcon('${k}')"><img src="${v}" class="w-full h-full rounded-lg ${imgClass}"></div>`; }
+            h += `<div class="icon-section-label">Emojis</div>`; h += EMOJIS.map(i => `<div class="icon-option" onclick="selectIcon('${i}')">${i}</div>`).join(''); if (grid) grid.innerHTML = h;
+            let hEdit = `<div class="icon-section-label">Donna & Equipo</div>`; for (let [k, v] of Object.entries(CUSTOM_LOGOS)) { const isLogo = ['EXCEL', 'EONESIA', 'ROBOKIDS', 'INCYDE', 'HYGGE', 'QURTUBA'].includes(k); const imgClass = isLogo ? 'object-contain p-1 bg-white' : 'object-cover'; hEdit += `<div class="icon-option" onclick="selectEditIcon('${k}')"><img src="${v}" class="w-full h-full rounded-lg ${imgClass}"></div>`; }
+            hEdit += `<div class="icon-section-label">Emojis</div>`; hEdit += EMOJIS.map(i => `<div class="icon-option" onclick="selectEditIcon('${i}')">${i}</div>`).join(''); if (editGrid) editGrid.innerHTML = hEdit;
+        }
+
+        window.selectIcon = function(i) { selectedEmoji = i; const displayEl = document.getElementById('selected-icon-display'); if (CUSTOM_LOGOS[i]) { const isLogo = ['EXCEL', 'EONESIA', 'ROBOKIDS', 'INCYDE', 'HYGGE', 'QURTUBA'].includes(i); const imgClass = isLogo ? 'object-contain p-1 bg-white' : 'object-cover'; displayEl.innerHTML = `<img src="${CUSTOM_LOGOS[i]}" class="w-full h-full rounded-lg ${imgClass}">`; } else { displayEl.innerHTML = i; } document.getElementById('icon-grid').classList.add('hidden'); }
+        window.toggleIconPicker = function() { document.getElementById('icon-grid').classList.toggle('hidden'); }
+        window.selectEditIcon = function(i) { currentEditSectionIcon = i; const displayEl = document.getElementById('edit-selected-icon-display'); if (CUSTOM_LOGOS[i]) { const isLogo = ['EXCEL', 'EONESIA', 'ROBOKIDS', 'INCYDE', 'HYGGE', 'QURTUBA'].includes(i); const imgClass = isLogo ? 'object-contain p-1 bg-white' : 'object-cover'; displayEl.innerHTML = `<img src="${CUSTOM_LOGOS[i]}" class="w-full h-full rounded-lg ${imgClass}">`; } else { displayEl.innerHTML = i; } document.getElementById('edit-icon-grid').classList.add('hidden'); }
+        window.toggleEditIconPicker = function() { document.getElementById('edit-icon-grid').classList.toggle('hidden'); }
+
+        window.addEventListener('wheel', (e) => { if (isDragging) window.scrollBy(0, e.deltaY); }, { passive: true });
+        window.addEventListener('click', (e) => { 
+            const iconGrid = document.getElementById('icon-grid'); if (iconGrid && !document.getElementById('icon-picker-btn').contains(e.target) && !iconGrid.contains(e.target)) iconGrid.classList.add('hidden'); 
+            const editGrid = document.getElementById('edit-icon-grid'); const editBtn = document.getElementById('edit-icon-picker-btn'); if (editGrid && editBtn && !editBtn.contains(e.target) && !editGrid.contains(e.target)) editGrid.classList.add('hidden');
+            const radarBtn = document.getElementById('radar-btn'); const radarPanel = document.getElementById('radar-panel'); if (radarPanel && !radarPanel.contains(e.target) && !radarBtn.contains(e.target)) radarPanel.style.display = 'none'; 
+            const launchpadOverlay = document.getElementById('launchpad-modal-overlay'); const launchpadContent = launchpadOverlay ? launchpadOverlay.firstElementChild : null; if (launchpadOverlay && launchpadOverlay.style.display === 'flex' && launchpadContent && !launchpadContent.contains(e.target) && e.target.id === 'launchpad-modal-overlay') hideLaunchpadModal();
+            const aboutOverlay = document.getElementById('about-modal-overlay'); const aboutContent = aboutOverlay ? aboutOverlay.firstElementChild : null; if (aboutOverlay && aboutOverlay.style.display === 'flex' && aboutContent && !aboutContent.contains(e.target) && e.target.id === 'about-modal-overlay') hideAboutModal();
+        });
+
+        window.onload = async function() { 
+            initIconGrid(); renderAll(); initMusic();
+            const postitContainer = document.getElementById('donna-postit'); const postitContent = document.getElementById('postit-content');
+            postitContent.innerHTML = postitData.text || "";
+            if (postitData.w) postitContainer.style.width = postitData.w + 'px'; if (postitData.h) postitContainer.style.height = postitData.h + 'px';
+            if (postitData.visible) { postitContainer.classList.remove('hidden'); if (postitData.x !== null && postitData.y !== null) { postitContainer.style.left = postitData.x + 'px'; postitContainer.style.top = postitData.y + 'px'; postitContainer.style.right = 'auto'; } }
+            initPostitDrag(); initPostitResize(); 
+            postitContent.addEventListener('input', function() { postitData.text = this.innerHTML; savePostit(); });
+
+            try { const db = await openDB(); fileHandle = await db.get('config', 'donnaFileHandle'); if (fileHandle) updateFSStatus(false); } catch (e) { console.error("Error al cargar BD.", e); }
+            setInterval(() => { if (fileHandle) syncToDisk(); }, 300000);
+            setInterval(() => { const p = document.getElementById('donna-timebox-panel'); if(p && p.classList.contains('active')) renderTimeboxes(); }, 60000);
+        };
+    </script>
+</body>
+</html>
